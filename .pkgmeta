@@ -1,0 +1,6 @@
+package-as: MythicPlusTracker
+
+ignore:
+  - .github
+  - .gitignore
+  - CHANGELOG.md

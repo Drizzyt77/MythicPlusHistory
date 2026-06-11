@@ -1,0 +1,6 @@
+# Packager output
+.release/
+
+# OS files
+.DS_Store
+Thumbs.db
