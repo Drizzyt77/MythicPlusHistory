@@ -203,7 +203,7 @@ scaleValueText:SetText("100%")
 -- Using OptionsSliderTemplate for a reliable WoW-native thumb and track.
 local scaleSlider = CreateFrame("Slider", "MPTScaleSlider", mainFrame, "OptionsSliderTemplate")
 scaleSlider:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  52, -46)
-scaleSlider:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -56, -46)
+scaleSlider:SetPoint("TOPRIGHT", scaleValueText, "TOPLEFT", -8, 4)
 
 -- Hide the template's built-in labels — we provide our own.
 for _, key in ipairs({ "Text", "Low", "High" }) do
