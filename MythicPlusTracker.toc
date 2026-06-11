@@ -5,7 +5,7 @@
 ## Version: 1.0.0
 ## DefaultState: enabled
 ## SavedVariables: MythicPlusTrackerDB
-## X-Curse-Project-ID: 0
+## X-Curse-Project-ID: 1572107
 ## X-Wago-ID: 0
 
 Libs\LibStub\LibStub.lua
