@@ -6,7 +6,7 @@
 ## DefaultState: enabled
 ## SavedVariables: MythicPlusTrackerDB
 ## X-Curse-Project-ID: 1572107
-## X-Wago-ID: 0
+## X-Wago-ID: qGZO2dNd
 
 Libs\LibStub\LibStub.lua
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
