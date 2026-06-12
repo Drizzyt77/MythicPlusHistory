@@ -28,7 +28,6 @@ local TEST_RACES = {
     "Nightborne", "Highmountain Tauren", "Zandalari Troll", "Vulpera", "Dracthyr",
 }
 
--- Which classes can fill each role
 local ROLE_CLASSES = {
     TANK    = { "WARRIOR", "PALADIN", "DEATHKNIGHT", "MONK", "DEMONHUNTER", "DRUID" },
     HEALER  = { "PALADIN", "PRIEST", "SHAMAN", "MONK", "DRUID", "EVOKER" },
@@ -36,7 +35,6 @@ local ROLE_CLASSES = {
                 "MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "DEATHKNIGHT", "EVOKER" },
 }
 
--- Valid specs per class per role
 local ROLE_SPECS = {
     TANK = {
         WARRIOR     = { "Protection" },
@@ -74,7 +72,6 @@ local ROLE_SPECS = {
 local function RandInt(min, max) return math.random(min, max) end
 local function RandPick(t) return t[RandInt(1, #t)] end
 
--- Detect the player's actual role from their current spec
 local function GetPlayerRole()
     if GetSpecialization and GetSpecializationInfo then
         local idx = GetSpecialization()
@@ -97,7 +94,6 @@ local function GetPlayerSpecName()
     return nil
 end
 
--- Build a randomized NPC for a given role, avoiding name collisions
 local function MakeNPC(role, usedNames)
     local class = RandPick(ROLE_CLASSES[role])
     local specs = ROLE_SPECS[role][class]
@@ -115,7 +111,6 @@ local function MakeNPC(role, usedNames)
     }
 end
 
--- Build a full 5-man group around the player's actual role
 local function BuildGroup()
     local playerName  = UnitName("player") or "Drizzyt"
     local playerRealm = GetRealmName() or "Stormrage"
@@ -140,7 +135,6 @@ local function BuildGroup()
         }
     }
 
-    -- Fill the remaining slots so the group always has 1 tank, 1 healer, 3 DPS
     local needed = { TANK = 1, HEALER = 1, DAMAGER = 3 }
     needed[playerRole] = needed[playerRole] - 1
 
@@ -148,7 +142,7 @@ local function BuildGroup()
     for role, count in pairs(needed) do
         for _ = 1, count do roleQueue[#roleQueue + 1] = role end
     end
-    -- Shuffle so order isn't always tank, healer, dps, dps, dps
+
     for i = #roleQueue, 2, -1 do
         local j = RandInt(1, i)
         roleQueue[i], roleQueue[j] = roleQueue[j], roleQueue[i]
@@ -160,9 +154,6 @@ local function BuildGroup()
     return members, playerName, playerRealm
 end
 
-
--- Builds and saves one fake completed or abandoned M+ run.
--- Outcome distribution: ~40% timed, ~25% depleted, ~20% abandoned, ~15% reset
 function addon.CreateTestRun()
     local level   = RandInt(2, 22)
     local dungeon = RandPick(TEST_DUNGEONS)
@@ -215,7 +206,6 @@ function addon.CreateTestRun()
 end
 
 
--- Sets a fake in-progress run so the active run banner can be tested.
 function addon.CreateTestActiveRun()
     local level   = RandInt(2, 22)
     local dungeon = RandPick(TEST_DUNGEONS)

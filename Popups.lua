@@ -1,6 +1,5 @@
 -- Popups.lua
--- StaticPopupDialogs for delete confirmation and player notes.
--- Loaded after UI.lua so addon.ShowRunDetail / addon.ClearRunDetail are defined.
+
 local addon = MythicPlusHistory
 
 

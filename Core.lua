@@ -1,16 +1,11 @@
 -- Core.lua
--- Event-driven backbone. Listens for M+ events and builds run records.
 
 local addon = MythicPlusHistory
 
--- Invisible frame used purely as an event listener (common WoW pattern)
 local eventFrame = CreateFrame("Frame")
 
--- Holds the run currently in progress. nil when not in a key.
--- Like a JS object we build up incrementally then flush to storage.
 local activeRun = nil
 
--- Cancellable 90-minute timeout handle (C_Timer.NewTicker returns a handle with :Cancel())
 local runTimeoutTicker = nil
 
 local function CancelRunTimeout()
@@ -31,8 +26,6 @@ end
 
 -- ─── Helpers ─────────────────────────────────────────────────────────────────
 
--- Builds a snapshot of all 5 group members at the moment a key starts.
--- In a 5-man party: "player" is you, "party1"-"party4" are the others.
 local function GetGroupMembers()
     local members = {}
     local units = { "player", "party1", "party2", "party3", "party4" }
@@ -85,7 +78,6 @@ end
 
 -- ─── Event Handlers ──────────────────────────────────────────────────────────
 
--- Fires when a keystone is placed and the run begins.
 local function OnChallengeStart()
     local mapID         = C_ChallengeMode.GetActiveChallengeMapID()
     local level, affixes = C_ChallengeMode.GetActiveKeystoneInfo()
@@ -128,10 +120,8 @@ local function OnChallengeCompleted(...)
 
     local dungeonName = activeRun.dungeon
 
-    -- Try positional event args first (older WoW versions)
     local mapID, level, runTimeMs, onTime, keystoneUpgrades = ...
 
-    -- If args are nil, pull from the API (Midnight / TWW style)
     if runTimeMs == nil then
         if C_ChallengeMode and C_ChallengeMode.GetCompletionInfo then
             local ok, info = pcall(C_ChallengeMode.GetCompletionInfo)
@@ -144,12 +134,10 @@ local function OnChallengeCompleted(...)
         end
     end
 
-    -- Last resort: compute time from wall-clock (misses death-timer penalties)
     if runTimeMs == nil and activeRun.startTime then
         runTimeMs = (time() - activeRun.startTime) * 1000
     end
 
-    -- Determine timed/depleted from time limit when the API didn't tell us
     if onTime == nil and runTimeMs and activeRun.timeLimit then
         onTime           = runTimeMs <= (activeRun.timeLimit * 1000)
         keystoneUpgrades = onTime and 1 or 0
