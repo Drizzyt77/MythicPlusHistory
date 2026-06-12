@@ -181,7 +181,13 @@ local function OnZoneChanged()
     if not activeRun then return end
     local inInstance = IsInInstance()
     if not inInstance then
-        SaveAsReset("Dungeon left")
+        CancelRunTimeout()
+        activeRun.abandoned = true
+        activeRun.endTime   = time()
+        addon.SaveRun(activeRun)
+        activeRun = nil
+        if addon.RefreshUI then addon.RefreshUI() end
+        print("|cffff9900[M+ History]|r Dungeon left — run saved as abandoned.")
     end
 end
 

@@ -294,6 +294,7 @@ for i = 1, 5 do
     col.race  = FS("GameFontNormalSmall", -114)
     col.score = FS("GameFontNormalSmall", -130)
     col.name:SetWordWrap(false)
+    col.race:SetWordWrap(false)
 
     col.noteBtn = CreateFrame("Button", nil, detailPanel)
     col.noteBtn:SetHeight(14)
