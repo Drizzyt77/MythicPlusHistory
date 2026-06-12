@@ -7,14 +7,32 @@ local eventFrame = CreateFrame("Frame")
 local activeRun = nil
 
 local runTimeoutTicker = nil
+local zoneOutTicker    = nil
 
 local function CancelRunTimeout()
     if runTimeoutTicker then runTimeoutTicker:Cancel(); runTimeoutTicker = nil end
 end
 
+local function CancelZoneOutTimer()
+    if zoneOutTicker then zoneOutTicker:Cancel(); zoneOutTicker = nil end
+end
+
+local function SaveAsAbandoned(reason)
+    if not activeRun then return end
+    CancelRunTimeout()
+    CancelZoneOutTimer()
+    activeRun.abandoned = true
+    activeRun.endTime   = time()
+    addon.SaveRun(activeRun)
+    activeRun = nil
+    if addon.RefreshUI then addon.RefreshUI() end
+    print("|cffff9900[M+ History]|r " .. reason .. " — run saved as abandoned.")
+end
+
 local function SaveAsReset(reason)
     if not activeRun then return end
     CancelRunTimeout()
+    CancelZoneOutTimer()
     activeRun.reset   = true
     activeRun.endTime = time()
     addon.SaveRun(activeRun)
@@ -79,6 +97,10 @@ end
 -- ─── Event Handlers ──────────────────────────────────────────────────────────
 
 local function OnChallengeStart()
+    -- If a run is still pending (e.g. player abandoned and immediately started a new key),
+    -- flush it as abandoned before recording the new one.
+    if activeRun then SaveAsAbandoned("New key started") end
+
     local mapID         = C_ChallengeMode.GetActiveChallengeMapID()
     local level, affixes = C_ChallengeMode.GetActiveKeystoneInfo()
     local dungeonName   = "Unknown"
@@ -117,6 +139,7 @@ end
 local function OnChallengeCompleted(...)
     if not activeRun then return end
     CancelRunTimeout()
+    CancelZoneOutTimer()
 
     local dungeonName = activeRun.dungeon
 
@@ -163,31 +186,38 @@ end
 -- Fires when the key is reset from the menu or the run is abandoned.
 local function OnChallengeReset()
     if not activeRun then return end
-    CancelRunTimeout()
-
-    activeRun.abandoned = true
-    activeRun.endTime   = time()
-
-    addon.SaveRun(activeRun)
-    activeRun = nil
-
-    print("|cffff9900[M+ History]|r Run abandoned — saved to history.")
+    SaveAsAbandoned("Key reset")
 end
 
--- Fires when the player changes zones. If leaving an instance with an active
--- run, that means the group walked out and reset rather than using the
--- formal abandon button.
+-- Fires when the player changes zones.
+-- Leaving the dungeon starts a 3-minute grace timer to allow talent swaps
+-- (players sometimes exit temporarily to change talents mid-key).
+-- Returning to the same dungeon within that window cancels the timer.
+-- If the timer expires, or the player enters a different instance, the run is abandoned.
+local ZONE_OUT_GRACE = 180
+
 local function OnZoneChanged()
     if not activeRun then return end
     local inInstance = IsInInstance()
+
     if not inInstance then
-        CancelRunTimeout()
-        activeRun.abandoned = true
-        activeRun.endTime   = time()
-        addon.SaveRun(activeRun)
-        activeRun = nil
-        if addon.RefreshUI then addon.RefreshUI() end
-        print("|cffff9900[M+ History]|r Dungeon left — run saved as abandoned.")
+        if not zoneOutTicker then
+            zoneOutTicker = C_Timer.NewTicker(ZONE_OUT_GRACE, function()
+                zoneOutTicker = nil
+                SaveAsAbandoned("Dungeon left")
+            end, 1)
+        end
+    else
+        if zoneOutTicker then
+            CancelZoneOutTimer()
+            local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+                          and C_ChallengeMode.GetActiveChallengeMapID()
+            if not (mapID and mapID == activeRun.mapID) then
+                -- Zoned into a different instance — run is over
+                SaveAsAbandoned("Left dungeon")
+            end
+            -- Same dungeon: run continues, no action needed
+        end
     end
 end
 
@@ -391,7 +421,7 @@ end
 
 function addon.ForceStopRun()
     if not activeRun then return end
-    SaveAsReset("Force stopped by user")
+    SaveAsAbandoned("Force stopped by user")
 end
 
 
