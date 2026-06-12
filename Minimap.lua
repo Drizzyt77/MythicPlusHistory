@@ -17,7 +17,7 @@ if LDB then
             if button == "LeftButton" then addon.ToggleUI() end
         end,
         OnTooltipShow = function(tt)
-            tt:SetText("|cff00ccffMythic Tracker|r")
+            tt:SetText("|cff00ccffMythic+ History|r")
             tt:AddLine("Click to open or close", 1, 1, 1)
             tt:AddLine("Drag to reposition",     0.7, 0.7, 0.7)
         end,
