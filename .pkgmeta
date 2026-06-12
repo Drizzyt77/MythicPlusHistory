@@ -1,4 +1,5 @@
 package-as: MythicPlusHistory
+manual-changelog: CHANGELOG.md
 
 ignore:
   - .github
