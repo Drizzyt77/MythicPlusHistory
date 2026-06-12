@@ -2,7 +2,7 @@
 ## Title: Mythic+ History
 ## Notes: Track your Mythic+ run history and remember your group members
 ## Author: Drizzyt
-## Version: 1.0.2
+## Version: 1.0.3
 ## DefaultState: enabled
 ## SavedVariables: MythicPlusHistoryDB
 ## X-Curse-Project-ID: 1572107
