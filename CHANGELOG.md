@@ -1,4 +1,8 @@
 # Changelog
+## v1.0.4 (2016-06-12)
+- Add edge case for exiting an instance to change talents
+- Shorten long race names to avoid overlap
+- Fixed runs being recorded as reset when abandoned
 
 ## v1.0.0 (2026-06-10)
 ### Initial Release
