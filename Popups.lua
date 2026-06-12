@@ -1,10 +1,10 @@
 -- Popups.lua
 -- StaticPopupDialogs for delete confirmation and player notes.
 -- Loaded after UI.lua so addon.ShowRunDetail / addon.ClearRunDetail are defined.
-local addon = MythicPlusTracker
+local addon = MythicPlusHistory
 
 
-StaticPopupDialogs["MYTHICPLUSTRACKER_DELETE_RUN"] = {
+StaticPopupDialogs["MYTHICPLUSHISTORY_DELETE_RUN"] = {
     text           = "Delete |cff00ccff%s +%s|r?\nThis cannot be undone.",
     button1        = "Delete",
     button2        = "Cancel",
@@ -22,7 +22,7 @@ StaticPopupDialogs["MYTHICPLUSTRACKER_DELETE_RUN"] = {
     preferredIndex = 3,
 }
 
-StaticPopupDialogs["MYTHICPLUSTRACKER_PLAYER_NOTE"] = {
+StaticPopupDialogs["MYTHICPLUSHISTORY_PLAYER_NOTE"] = {
     text           = "Note for |cffdddddd%s|r",
     button1        = "Save",
     button2        = "Cancel",
@@ -43,7 +43,7 @@ StaticPopupDialogs["MYTHICPLUSTRACKER_PLAYER_NOTE"] = {
     preferredIndex = 3,
 }
 
-StaticPopupDialogs["MYTHICPLUSTRACKER_DELETE_NOTE"] = {
+StaticPopupDialogs["MYTHICPLUSHISTORY_DELETE_NOTE"] = {
     text           = "Delete note for |cffdddddd%s|r?\nThis cannot be undone.",
     button1        = "Delete",
     button2        = "Cancel",

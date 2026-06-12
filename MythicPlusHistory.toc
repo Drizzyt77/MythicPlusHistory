@@ -1,10 +1,10 @@
 ## Interface: 120005
-## Title: Mythic+ Tracker
+## Title: Mythic+ History
 ## Notes: Track your Mythic+ run history and remember your group members
 ## Author: Drizzyt
-## Version: 1.0.0
+## Version: 1.0.2
 ## DefaultState: enabled
-## SavedVariables: MythicPlusTrackerDB
+## SavedVariables: MythicPlusHistoryDB
 ## X-Curse-Project-ID: 1572107
 ## X-Wago-ID: qGZO2dNd
 

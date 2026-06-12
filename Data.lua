@@ -1,20 +1,20 @@
 -- Data.lua
 -- Database layer: initializes SavedVariables and exposes read/write helpers.
 
-MythicPlusTracker = MythicPlusTracker or {}
-local addon = MythicPlusTracker
+MythicPlusHistory = MythicPlusHistory or {}
+local addon = MythicPlusHistory
 
 
 -- Called once on first load to set up default structure.
 function addon.InitDB()
-    if not MythicPlusTrackerDB then
-        MythicPlusTrackerDB = {
+    if not MythicPlusHistoryDB then
+        MythicPlusHistoryDB = {
             runs        = {},
             playerNotes = {},
             version     = 1,
         }
     end
-    addon.db = MythicPlusTrackerDB
+    addon.db = MythicPlusHistoryDB
 
     -- Migrate: ensure window state exists for older saves
     if not addon.db.window then

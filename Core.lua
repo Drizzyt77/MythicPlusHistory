@@ -1,7 +1,7 @@
 -- Core.lua
 -- Event-driven backbone. Listens for M+ events and builds run records.
 
-local addon = MythicPlusTracker
+local addon = MythicPlusHistory
 
 -- Invisible frame used purely as an event listener (common WoW pattern)
 local eventFrame = CreateFrame("Frame")
@@ -25,7 +25,7 @@ local function SaveAsReset(reason)
     addon.SaveRun(activeRun)
     activeRun = nil
     if addon.RefreshUI then addon.RefreshUI() end
-    print("|cffff9900[M+ Tracker]|r " .. reason .. " — run saved as reset.")
+    print("|cffff9900[M+ History]|r " .. reason .. " — run saved as reset.")
 end
 
 
@@ -117,7 +117,7 @@ local function OnChallengeStart()
         SaveAsReset("Run timed out after 90 min")
     end, 1)
 
-    print("|cff00ff00[M+ Tracker]|r Tracking started: +" .. (level or "?") .. " " .. dungeonName)
+    print("|cff00ff00[M+ History]|r Tracking started: +" .. (level or "?") .. " " .. dungeonName)
 end
 
 
@@ -168,7 +168,7 @@ local function OnChallengeCompleted(...)
 
     local displayLevel = level or "?"
     local result = (onTime) and "|cff00ff00Timed|r" or "|cffff4444Depleted|r"
-    print("|cff00ff00[M+ Tracker]|r " .. result .. " +" .. tostring(displayLevel) .. " " .. dungeonName .. " saved.")
+    print("|cff00ff00[M+ History]|r " .. result .. " +" .. tostring(displayLevel) .. " " .. dungeonName .. " saved.")
 end
 
 
@@ -183,7 +183,7 @@ local function OnChallengeReset()
     addon.SaveRun(activeRun)
     activeRun = nil
 
-    print("|cffff9900[M+ Tracker]|r Run abandoned — saved to history.")
+    print("|cffff9900[M+ History]|r Run abandoned — saved to history.")
 end
 
 -- Fires when the player changes zones. If leaving an instance with an active
@@ -229,7 +229,7 @@ local function CheckNewGroupMembers()
                         local cc = (class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
                                    or { r = 1, g = 1, b = 1 }
                         DEFAULT_CHAT_FRAME:AddMessage(string.format(
-                            "|cff00ff00[M+ Tracker]|r Note for |cff%02x%02x%02x%s|r: %s",
+                            "|cff00ff00[M+ History]|r Note for |cff%02x%02x%02x%s|r: %s",
                             math.floor(cc.r * 255), math.floor(cc.g * 255), math.floor(cc.b * 255),
                             name, note))
                     end
@@ -293,7 +293,7 @@ local function CheckApplicants()
             if name and note then
                 alertedApplicants[applicantID] = true
                 DEFAULT_CHAT_FRAME:AddMessage(string.format(
-                    "|cff00ff00[M+ Tracker]|r Applicant |cffffd700%s|r has a note: |cffffff88%s|r",
+                    "|cff00ff00[M+ History]|r Applicant |cffffd700%s|r has a note: |cffffff88%s|r",
                     name, note))
             end
         end
@@ -326,7 +326,7 @@ GameTooltip:HookScript("OnShow", function(self)
         if not self:IsShown() then return end
         local name, note = LFG_NoteForApplicant(applicantID)
         if name and note then
-            self:AddLine("|cff00ff00M+ Tracker Note:|r")
+            self:AddLine("|cff00ff00M+ History Note:|r")
             self:AddLine("|cffffff88" .. note .. "|r", 1, 1, 1, true)
             self:Show()  -- force resize after adding lines
         end
@@ -341,9 +341,9 @@ end)
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local addonName = ...
-        if addonName == "MythicPlusTracker" then
+        if addonName == "MythicPlusHistory" then
             addon.InitDB()
-            print("|cff00ff00[M+ Tracker]|r Loaded! Type |cffffd700/mtrack|r to open.")
+            print("|cff00ff00[M+ History]|r Loaded! Type |cffffd700/mtrack|r to open.")
         end
 
     elseif event == "CHALLENGE_MODE_START" then
@@ -405,9 +405,9 @@ end
 
 -- "/mtrack"      → open/close window
 -- "/mtrack test" → inject a fake run for testing
-SLASH_MYTHICPLUSTRACKER1 = "/mtrack"
-SLASH_MYTHICPLUSTRACKER2 = "/mythicplustracker"
-SlashCmdList["MYTHICPLUSTRACKER"] = function(msg)
+SLASH_MYTHICPLUSHISTORY1 = "/mtrack"
+SLASH_MYTHICPLUSHISTORY2 = "/mythicplushistory"
+SlashCmdList["MYTHICPLUSHISTORY"] = function(msg)
     local cmd = msg and msg:lower():match("^%s*(%a*)") or ""
     if cmd == "test" then
         addon.CreateTestRun()

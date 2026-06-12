@@ -2,16 +2,16 @@
 -- LibDBIcon-1.0 minimap button. addon.RegisterMinimapIcon() is called from
 -- UI.lua's stateRestoreFrame once addon.db is ready (so LibDBIcon can
 -- read/write the saved angle without the DB being nil).
-local addon = MythicPlusTracker
+local addon = MythicPlusHistory
 
 local LDB    = LibStub and LibStub("LibDataBroker-1.1", true)
 local DBIcon = LibStub and LibStub("LibDBIcon-1.0",     true)
 
 local minimapDataObj
 if LDB then
-    minimapDataObj = LDB:NewDataObject("MythicPlusTracker", {
+    minimapDataObj = LDB:NewDataObject("MythicPlusHistory", {
         type  = "launcher",
-        text  = "MythicPlusTracker",
+        text  = "MythicPlusHistory",
         icon  = "Interface\\Icons\\achievement_challengemode_goldmedal",
         OnClick = function(_, button)
             if button == "LeftButton" then addon.ToggleUI() end
@@ -26,7 +26,7 @@ end
 
 function addon.RegisterMinimapIcon()
     if not (DBIcon and minimapDataObj) then return end
-    DBIcon:Register("MythicPlusTracker", minimapDataObj, addon.db.minimap)
+    DBIcon:Register("MythicPlusHistory", minimapDataObj, addon.db.minimap)
     -- Swap in the actual keystone icon once the item is in the client cache
     local function ApplyKeystoneIcon()
         local id = GetItemIcon and GetItemIcon(180653)

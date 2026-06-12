@@ -1,6 +1,6 @@
 -- TestData.lua
 -- Generates fake M+ runs for UI testing. Only triggered by /mtrack test.
-local addon = MythicPlusTracker
+local addon = MythicPlusHistory
 
 local TEST_DUNGEONS = {
     "Windrunner Spire",
@@ -211,7 +211,7 @@ function addon.CreateTestRun()
 
     addon.SaveRun(run)
     if addon.RefreshUI then addon.RefreshUI() end
-    print("|cff00ff00[M+ Tracker]|r Test run added: " .. result .. " +" .. level .. " " .. dungeon)
+    print("|cff00ff00[M+ History]|r Test run added: " .. result .. " +" .. level .. " " .. dungeon)
 end
 
 
@@ -235,5 +235,5 @@ function addon.CreateTestActiveRun()
 
     addon.SetActiveRun(fakeRun)
     if addon.RefreshUI then addon.RefreshUI() end
-    print("|cff00ff00[M+ Tracker]|r Test active run started: +" .. level .. " " .. dungeon)
+    print("|cff00ff00[M+ History]|r Test active run started: +" .. level .. " " .. dungeon)
 end

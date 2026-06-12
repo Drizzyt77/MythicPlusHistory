@@ -1,5 +1,5 @@
 -- UI.lua
-local addon = MythicPlusTracker
+local addon = MythicPlusHistory
 
 -- ─── Display maps ─────────────────────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ end
 
 -- ─── Main Window ──────────────────────────────────────────────────────────────
 
-local mainFrame = CreateFrame("Frame", "MythicPlusTrackerFrame", UIParent, "BackdropTemplate")
+local mainFrame = CreateFrame("Frame", "MythicPlusHistoryFrame", UIParent, "BackdropTemplate")
 mainFrame:SetSize(520, 638)
 mainFrame:SetPoint("CENTER")
 mainFrame:SetMovable(true)
@@ -83,7 +83,7 @@ mainFrame:SetScript("OnDragStop", function(self)
 end)
 mainFrame:SetFrameStrata("HIGH")
 mainFrame:Hide()
-table.insert(UISpecialFrames, "MythicPlusTrackerFrame")
+table.insert(UISpecialFrames, "MythicPlusHistoryFrame")
 
 mainFrame:SetBackdrop({
     bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
@@ -99,7 +99,7 @@ mainFrame:SetBackdropBorderColor(0.3, 0.3, 0.4, 1)
 
 local title = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 title:SetPoint("TOP", mainFrame, "TOP", 0, -14)
-title:SetText("|cff00ccffMythic+ Tracker|r")
+title:SetText("|cff00ccffMythic+ History|r")
 
 local subtitle = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 subtitle:SetPoint("TOP", title, "BOTTOM", 0, -2)
@@ -117,7 +117,7 @@ gearBtn:SetSize(20, 20)
 gearBtn:SetPoint("RIGHT", closeBtn, "LEFT", -6, 0)
 local gearTex = gearBtn:CreateTexture(nil, "ARTWORK")
 gearTex:SetAllPoints()
-gearTex:SetTexture("Interface\\AddOns\\MythicPlusTracker\\ICONS\\settings_gear_icon")
+gearTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\settings_gear_icon")
 gearTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 gearTex:SetAlpha(0.55)
 gearBtn.tex = gearTex
@@ -144,7 +144,7 @@ statsBtn:SetSize(20, 20)
 statsBtn:SetPoint("RIGHT", gearBtn, "LEFT", -6, 0)
 local statsTex = statsBtn:CreateTexture(nil, "ARTWORK")
 statsTex:SetAllPoints()
-statsTex:SetTexture("Interface\\AddOns\\MythicPlusTracker\\ICONS\\statistics_icon")
+statsTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\statistics_icon")
 statsTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 statsTex:SetAlpha(0.55)
 statsBtn.tex = statsTex
@@ -169,7 +169,7 @@ notesBtn:SetSize(20, 20)
 notesBtn:SetPoint("RIGHT", statsBtn, "LEFT", -6, 0)
 local notesTex = notesBtn:CreateTexture(nil, "ARTWORK")
 notesTex:SetAllPoints()
-notesTex:SetTexture("Interface\\AddOns\\MythicPlusTracker\\ICONS\\notes_icon")
+notesTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\notes_icon")
 notesTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 notesTex:SetAlpha(0.55)
 notesBtn.tex = notesTex
@@ -201,13 +201,13 @@ scaleValueText:SetJustifyH("RIGHT")
 scaleValueText:SetText("100%")
 
 -- Using OptionsSliderTemplate for a reliable WoW-native thumb and track.
-local scaleSlider = CreateFrame("Slider", "MPTScaleSlider", mainFrame, "OptionsSliderTemplate")
+local scaleSlider = CreateFrame("Slider", "MPHScaleSlider", mainFrame, "OptionsSliderTemplate")
 scaleSlider:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  52, -46)
 scaleSlider:SetPoint("TOPRIGHT", scaleValueText, "TOPLEFT", -8, 4)
 
 -- Hide the template's built-in labels — we provide our own.
 for _, key in ipairs({ "Text", "Low", "High" }) do
-    local lbl = scaleSlider[key] or _G["MPTScaleSlider" .. key]
+    local lbl = scaleSlider[key] or _G["MPHScaleSlider" .. key]
     if lbl then lbl:SetText(""); lbl:Hide() end
 end
 
@@ -307,7 +307,7 @@ for i = 1, 5 do
     col.noteLabel:SetJustifyH("LEFT")
     col.noteBtn:SetScript("OnClick", function(self)
         if not self.playerKey then return end
-        local popup = StaticPopup_Show("MYTHICPLUSTRACKER_PLAYER_NOTE", self.playerName or "?", nil, self.playerKey)
+        local popup = StaticPopup_Show("MYTHICPLUSHISTORY_PLAYER_NOTE", self.playerName or "?", nil, self.playerKey)
         if popup and popup.EditBox then
             popup.EditBox:SetText(addon.GetPlayerNote(self.playerKey) or "")
             popup.EditBox:SetFocus()
@@ -516,7 +516,7 @@ divider2:SetColorTexture(0.3, 0.3, 0.4, 0.8)
 
 -- ─── Search Box ───────────────────────────────────────────────────────────────
 
-local searchBox = CreateFrame("EditBox", "MythicPlusTrackerSearch", mainFrame, "BackdropTemplate")
+local searchBox = CreateFrame("EditBox", "MythicPlusHistorySearch", mainFrame, "BackdropTemplate")
 searchBox:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8,   -284)
 searchBox:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -28, -284)
 searchBox:SetHeight(22)
@@ -775,7 +775,7 @@ local function GetOrCreateRow(index)
     deleteBtn:SetScript("OnClick", function(self)
         local run = self:GetParent().runData
         if not run then return end
-        StaticPopup_Show("MYTHICPLUSTRACKER_DELETE_RUN",
+        StaticPopup_Show("MYTHICPLUSHISTORY_DELETE_RUN",
             run.dungeon or "Unknown", tostring(run.keyLevel or "?"), run)
     end)
     row.deleteBtn = deleteBtn
@@ -1028,8 +1028,8 @@ function addon.RefreshUI()
             h:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -yOff)
             h.dayKey = dayKey
             h.arrow:SetTexture(collapsed
-    and "Interface\\AddOns\\MythicPlusTracker\\ICONS\\arrow_right"
-    or  "Interface\\AddOns\\MythicPlusTracker\\ICONS\\arrow_down")
+    and "Interface\\AddOns\\MythicPlusHistory\\ICONS\\arrow_right"
+    or  "Interface\\AddOns\\MythicPlusHistory\\ICONS\\arrow_down")
             h.dateLabel:SetText(FormatDateLabel(dayKey))
             h.countLabel:SetText("|cff888888" .. #runs .. " run" .. (#runs == 1 and "" or "s") .. "|r")
             h.summaryLabel:SetText(GroupSummary(runs))
@@ -1803,14 +1803,14 @@ function addon.RefreshNotes()
         row.nameLabel:SetText("|cffdddddd" .. entry.key .. "|r")
         row.noteLabel:SetText("|cff888888" .. preview .. "|r")
         row.editBtn:SetScript("OnClick", function()
-            local popup = StaticPopup_Show("MYTHICPLUSTRACKER_PLAYER_NOTE", displayName, nil, entry.key)
+            local popup = StaticPopup_Show("MYTHICPLUSHISTORY_PLAYER_NOTE", displayName, nil, entry.key)
             if popup and popup.EditBox then
                 popup.EditBox:SetText(entry.note)
                 popup.EditBox:SetFocus()
             end
         end)
         row.delBtn:SetScript("OnClick", function()
-            StaticPopup_Show("MYTHICPLUSTRACKER_DELETE_NOTE", entry.key, nil, entry.key)
+            StaticPopup_Show("MYTHICPLUSHISTORY_DELETE_NOTE", entry.key, nil, entry.key)
         end)
         row:Show()
     end
@@ -1824,7 +1824,7 @@ end
 local stateRestoreFrame = CreateFrame("Frame")
 stateRestoreFrame:RegisterEvent("ADDON_LOADED")
 stateRestoreFrame:SetScript("OnEvent", function(self, _, addonName)
-    if addonName ~= "MythicPlusTracker" then return end
+    if addonName ~= "MythicPlusHistory" then return end
     self:UnregisterEvent("ADDON_LOADED")
     if addon.db and addon.db.window then
         local win = addon.db.window
@@ -1878,7 +1878,7 @@ function addon.ToggleUI()
 end
 
 
--- ─── Addon Options Panel (ESC > Options > Addons > Mythic+ Tracker) ───────────
+-- ─── Addon Options Panel (ESC > Options > Addons > Mythic+ History) ───────────
 
 local optPanel = CreateFrame("Frame")
 
@@ -1894,6 +1894,6 @@ resetDesc:SetText("|cff888888Resets the tracker window to the center of the scre
 resetDesc:SetJustifyH("LEFT")
 
 if Settings and Settings.RegisterCanvasLayoutCategory then
-    local category = Settings.RegisterCanvasLayoutCategory(optPanel, "Mythic+ Tracker")
+    local category = Settings.RegisterCanvasLayoutCategory(optPanel, "Mythic+ History")
     Settings.RegisterAddOnCategory(category)
 end
