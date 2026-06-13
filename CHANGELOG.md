@@ -1,5 +1,11 @@
 # Changelog
-## v1.0.4 (2016-06-12)
+## v1.0.5 (2026-06-13)
+- Fixed an issue where class specs were not being captured
+- Fixed an issue where all Key results were returning +1
+- Fixed death penalty not being applied to key time
+- Added tracking for deaths on the history details
+
+## v1.0.4 (2026-06-12)
 - Add edge case for exiting an instance to change talents
 - Shorten long race names to avoid overlap
 - Fixed runs being recorded as reset when abandoned
