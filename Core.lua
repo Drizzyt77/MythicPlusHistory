@@ -62,12 +62,6 @@ local function GetGroupMembers()
                     local _, sName = GetSpecializationInfo(specIndex)
                     specName = sName
                 end
-            elseif GetInspectSpecialization then
-                local specID = GetInspectSpecialization(unit)
-                if specID and specID ~= 0 and GetSpecializationInfoByID then
-                    local ok, _, sName = pcall(GetSpecializationInfoByID, specID)
-                    if ok then specName = sName end
-                end
             end
 
             local mythicScore = nil
@@ -94,11 +88,87 @@ local function GetGroupMembers()
 end
 
 
+
+local inspectFrame = CreateFrame("Frame")
+local inspectRun   = nil
+local inspectGen   = 0  
+
+inspectFrame:SetScript("OnEvent", function(self, event, guid)
+    if not inspectRun then return end
+    for i = 1, 4 do
+        local unit = "party" .. i
+        if UnitExists(unit) and UnitGUID(unit) == guid then
+            local specID = GetInspectSpecialization(unit)
+            if specID and specID ~= 0 and GetSpecializationInfoByID then
+                local ok, _, sName = pcall(GetSpecializationInfoByID, specID)
+                if ok and sName then
+                    local name = UnitName(unit)
+                    for _, m in ipairs(inspectRun.members) do
+                        if m.name == name then m.spec = sName; break end
+                    end
+                end
+            end
+            break
+        end
+    end
+end)
+
+local function FetchPartySpecs(run)
+    inspectGen = inspectGen + 1
+    local gen  = inspectGen
+    inspectRun = run
+    inspectFrame:RegisterEvent("INSPECT_READY")
+
+    local delay = 1.0
+    for i = 1, 4 do
+        local unit = "party" .. i
+        if UnitExists(unit) then
+            C_Timer.After(delay, function()
+                if inspectGen ~= gen or not UnitExists(unit) then return end
+                NotifyInspect(unit)
+            end)
+            delay = delay + 1.0
+        end
+    end
+
+    C_Timer.After(delay + 3, function()
+        if inspectGen ~= gen then return end
+        inspectFrame:UnregisterEvent("INSPECT_READY")
+        inspectRun = nil
+    end)
+end
+
+
+-- ─── Upgrade Threshold Helper ────────────────────────────────────────────────
+
+local function CalcKeystoneUpgrades(runTimeMs, timeLimitSec, affixes)
+    local hasPeril = false
+    for _, id in ipairs(affixes or {}) do
+        if id == 152 then hasPeril = true; break end
+    end
+
+    local limit2, limit3
+    if hasPeril then
+        local base = timeLimitSec - 90
+        limit2 = base * 0.8 + 90
+        limit3 = base * 0.6 + 90
+    else
+        limit2 = timeLimitSec * 0.8
+        limit3 = timeLimitSec * 0.6
+    end
+
+    local runTimeSec = runTimeMs / 1000
+    if     runTimeSec <= limit3       then return 3
+    elseif runTimeSec <= limit2       then return 2
+    elseif runTimeSec <= timeLimitSec then return 1
+    else                                   return 0
+    end
+end
+
+
 -- ─── Event Handlers ──────────────────────────────────────────────────────────
 
 local function OnChallengeStart()
-    -- If a run is still pending (e.g. player abandoned and immediately started a new key),
-    -- flush it as abandoned before recording the new one.
     if activeRun then SaveAsAbandoned("New key started") end
 
     local mapID         = C_ChallengeMode.GetActiveChallengeMapID()
@@ -109,7 +179,7 @@ local function OnChallengeStart()
     if mapID then
         local name, _, limit = C_ChallengeMode.GetMapUIInfo(mapID)
         dungeonName = name or "Unknown"
-        timeLimit   = limit  -- time limit in seconds; nil if API doesn't return it
+        timeLimit   = limit
     end
 
     activeRun = {
@@ -123,19 +193,20 @@ local function OnChallengeStart()
         completed        = false,
         abandoned        = false,
         character        = UnitName("player") .. "-" .. GetRealmName(),
+        deathCount       = 0,
     }
 
-    -- 90-minute safety timeout: if the run never resolves, auto-save as reset
     CancelRunTimeout()
     runTimeoutTicker = C_Timer.NewTicker(5400, function()
         SaveAsReset("Run timed out after 90 min")
     end, 1)
 
+    FetchPartySpecs(activeRun)
+
     print("|cff00ff00[M+ History]|r Tracking started: +" .. (level or "?") .. " " .. dungeonName)
 end
 
 
--- Fires when the run timer ends successfully.
 local function OnChallengeCompleted(...)
     if not activeRun then return end
     CancelRunTimeout()
@@ -143,33 +214,57 @@ local function OnChallengeCompleted(...)
 
     local dungeonName = activeRun.dungeon
 
-    local mapID, level, runTimeMs, onTime, keystoneUpgrades = ...
+    local _, level, runTimeMs, onTime, keystoneUpgrades = ...
+    local usedAPITime = false
 
-    if runTimeMs == nil then
-        if C_ChallengeMode and C_ChallengeMode.GetCompletionInfo then
-            local ok, info = pcall(C_ChallengeMode.GetCompletionInfo)
-            if ok and type(info) == "table" then
-                runTimeMs        = info.time or (info.durationSec and info.durationSec * 1000)
-                onTime           = info.onTime
-                keystoneUpgrades = info.keystoneUpgrades or 0
-                level            = info.level or level
+    if C_ChallengeMode and C_ChallengeMode.GetChallengeCompletionInfo then
+        local ok, info = pcall(C_ChallengeMode.GetChallengeCompletionInfo)
+        if ok and type(info) == "table" then
+            if runTimeMs == nil then runTimeMs = info.time end
+            if onTime == nil           then onTime           = info.onTime           end
+            if keystoneUpgrades == nil then keystoneUpgrades = info.keystoneUpgrades end
+            if level == nil            then level            = info.level            end
+        end
+    end
+
+    if (runTimeMs == nil or keystoneUpgrades == nil) and C_ChallengeMode and C_ChallengeMode.GetCompletionInfo then
+        local ok, info = pcall(C_ChallengeMode.GetCompletionInfo)
+        if ok and type(info) == "table" then
+            if runTimeMs == nil then
+                runTimeMs = info.time or (info.durationSec and info.durationSec * 1000)
+                if runTimeMs then usedAPITime = true end
             end
+            if onTime == nil           then onTime           = info.onTime           end
+            if keystoneUpgrades == nil then keystoneUpgrades = info.keystoneUpgrades end
+            if level == nil            then level            = info.level            end
         end
     end
 
     if runTimeMs == nil and activeRun.startTime then
-        runTimeMs = (time() - activeRun.startTime) * 1000
+        runTimeMs = math.max(0, (time() - activeRun.startTime) * 1000 - 10000)
+    end
+
+    if usedAPITime then
+        runTimeMs = runTimeMs + (activeRun.timeLostSec or 0) * 1000
     end
 
     if onTime == nil and runTimeMs and activeRun.timeLimit then
-        onTime           = runTimeMs <= (activeRun.timeLimit * 1000)
-        keystoneUpgrades = onTime and 1 or 0
+        onTime = runTimeMs <= (activeRun.timeLimit * 1000)
+    end
+
+    if keystoneUpgrades == nil then
+        if runTimeMs and activeRun.timeLimit then
+            keystoneUpgrades = CalcKeystoneUpgrades(runTimeMs, activeRun.timeLimit, activeRun.affixes)
+        else
+            keystoneUpgrades = onTime and 1 or 0
+        end
     end
 
     activeRun.completed        = true
     activeRun.runTimeMs        = runTimeMs
     activeRun.onTime           = onTime and true or false
     activeRun.keystoneUpgrades = keystoneUpgrades or 0
+    activeRun.deathCount       = activeRun.deathCount or 0
     activeRun.endTime          = time()
 
     addon.SaveRun(activeRun)
@@ -183,17 +278,11 @@ local function OnChallengeCompleted(...)
 end
 
 
--- Fires when the key is reset from the menu or the run is abandoned.
 local function OnChallengeReset()
     if not activeRun then return end
     SaveAsAbandoned("Key reset")
 end
 
--- Fires when the player changes zones.
--- Leaving the dungeon starts a 3-minute grace timer to allow talent swaps
--- (players sometimes exit temporarily to change talents mid-key).
--- Returning to the same dungeon within that window cancels the timer.
--- If the timer expires, or the player enters a different instance, the run is abandoned.
 local ZONE_OUT_GRACE = 180
 
 local function OnZoneChanged()
@@ -213,25 +302,31 @@ local function OnZoneChanged()
             local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
                           and C_ChallengeMode.GetActiveChallengeMapID()
             if not (mapID and mapID == activeRun.mapID) then
-                -- Zoned into a different instance — run is over
                 SaveAsAbandoned("Left dungeon")
             end
-            -- Same dungeon: run continues, no action needed
         end
     end
 end
 
 
+-- ─── Death Tracking ──────────────────────────────────────────────────────────
+
+local function OnDeathCountUpdated()
+    if not activeRun then return end
+    if not (C_ChallengeMode and C_ChallengeMode.GetDeathCount) then return end
+    local count, timeLost = C_ChallengeMode.GetDeathCount()
+    activeRun.deathCount  = count    or 0
+    activeRun.timeLostSec = timeLost or 0
+end
+
+
 -- ─── Group Note Alerts ───────────────────────────────────────────────────────
 
--- Tracks players already alerted this session so GROUP_ROSTER_UPDATE spam
--- doesn't print the same note multiple times.
 local alertedPlayers = {}
 
 local function CheckNewGroupMembers()
     if not (addon.db and addon.db.playerNotes) then return end
 
-    -- Build unit list: party1-4 for groups, raid1-N for raids
     local units = {}
     if IsInRaid() then
         for i = 1, GetNumGroupMembers() do units[#units+1] = "raid" .. i end
@@ -275,7 +370,6 @@ local function LFG_GetApplicantIDs()
     return fn() or {}
 end
 
--- GetApplicantMemberInfo returns multiple plain values; first is "Name-Realm".
 local function LFG_GetMemberName(applicantID, idx)
     if not (C_LFGList and C_LFGList.GetApplicantMemberInfo) then return nil end
     local ok, name = pcall(C_LFGList.GetApplicantMemberInfo, applicantID, idx)
@@ -328,7 +422,6 @@ end
 -- ─── LFG Applicant Tooltip Notes ─────────────────────────────────────────────
 
 local function FindApplicantID(frame)
-    -- Walk up two levels — the tooltip owner may be a child of the actual button.
     for _ = 1, 3 do
         if not frame then break end
         if frame.applicantID then return frame.applicantID, frame.memberIdx end
@@ -345,14 +438,14 @@ GameTooltip:HookScript("OnShow", function(self)
     local applicantID = FindApplicantID(owner)
     if not applicantID then return end
 
-    -- Defer one frame so all LFG tooltip lines are added before ours.
     C_Timer.After(0, function()
         if not self:IsShown() then return end
         local name, note = LFG_NoteForApplicant(applicantID)
         if name and note then
+            self:AddLine("")
             self:AddLine("|cff00ff00M+ History Note:|r")
             self:AddLine("|cffffff88" .. note .. "|r", 1, 1, 1, true)
-            self:Show()  -- force resize after adding lines
+            self:Show()
         end
     end)
 end)
@@ -361,7 +454,6 @@ end)
 
 -- ─── Event Dispatcher ────────────────────────────────────────────────────────
 
--- Single OnEvent handler routes to the right function.
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local addonName = ...
@@ -389,15 +481,18 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             CheckNewGroupMembers()
         end
 
+    elseif event == "CHALLENGE_MODE_DEATH_COUNT_UPDATED" then
+        OnDeathCountUpdated()
+
     elseif event == "LFG_LIST_APPLICANT_LIST_UPDATED"
         or event == "LFG_LIST_APPLICANT_UPDATED" then
         CheckApplicants()
 
     elseif event == "PLAYER_LOGOUT" then
-        -- WoW auto-saves SavedVariables on logout, nothing extra needed.
     end
 end)
 
+eventFrame:RegisterEvent("CHALLENGE_MODE_DEATH_COUNT_UPDATED")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("CHALLENGE_MODE_START")
 eventFrame:RegisterEvent("CHALLENGE_MODE_COMPLETED")

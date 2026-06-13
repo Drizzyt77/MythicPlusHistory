@@ -109,7 +109,6 @@ local closeBtn = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
 closeBtn:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", 0, 0)
 closeBtn:SetScript("OnClick", function() mainFrame:Hide() end)
 
--- Forward declarations — assigned in the Settings Panel section below
 local settingsPanel, timeGroup, trackGroup, testBtn, statsPanel, notesPanel
 
 local gearBtn = CreateFrame("Button", nil, mainFrame)
@@ -189,7 +188,6 @@ end)
 
 
 -- ─── Scale Slider ─────────────────────────────────────────────────────────────
--- Sits between the subtitle and divider1, spanning the full width.
 
 local scaleLabel = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 scaleLabel:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 12, -50)
@@ -200,12 +198,10 @@ scaleValueText:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -30, -50)
 scaleValueText:SetJustifyH("RIGHT")
 scaleValueText:SetText("100%")
 
--- Using OptionsSliderTemplate for a reliable WoW-native thumb and track.
 local scaleSlider = CreateFrame("Slider", "MPHScaleSlider", mainFrame, "OptionsSliderTemplate")
 scaleSlider:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  52, -46)
 scaleSlider:SetPoint("TOPRIGHT", scaleValueText, "TOPLEFT", -8, 4)
 
--- Hide the template's built-in labels — we provide our own.
 for _, key in ipairs({ "Text", "Low", "High" }) do
     local lbl = scaleSlider[key] or _G["MPHScaleSlider" .. key]
     if lbl then lbl:SetText(""); lbl:Hide() end
@@ -230,7 +226,6 @@ divider1:SetHeight(1)
 divider1:SetColorTexture(0.3, 0.3, 0.4, 0.8)
 
 
--- Shared via addon namespace so Popups.lua can read and clear it.
 addon.selectedRun = nil
 
 
@@ -267,7 +262,6 @@ detailSeparator:SetHeight(1)
 detailSeparator:SetColorTexture(0.3, 0.3, 0.4, 0.45)
 detailSeparator:Hide()
 
--- Second info row: run time + key upgrade count
 local detailInfo = detailPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 detailInfo:SetPoint("TOPLEFT",  detailPanel, "TOPLEFT",  6, -24)
 detailInfo:SetPoint("TOPRIGHT", detailPanel, "TOPRIGHT", -6, -24)
@@ -426,13 +420,11 @@ function addon.ShowRunDetail(run)
     detailTitle:SetText("|cff00ccff" .. run.dungeon .. "  +" .. run.keyLevel .. "|r    " .. resultStr)
     detailTitle:Show()
 
-    -- Run time (use event-provided ms for completed runs; calculate from timestamps for abandoned)
     local timeMs = run.runTimeMs
     if not timeMs and run.startTime and run.endTime then
         timeMs = (run.endTime - run.startTime) * 1000
     end
 
-    -- Key upgrade indicator (+0 – +3)
     local upgradeStr
     if run.reset or run.abandoned then
         upgradeStr = "|cff888888—|r"
@@ -446,9 +438,13 @@ function addon.ShowRunDetail(run)
         upgradeStr = "|cff888888—|r"
     end
 
+    local deaths    = run.deathCount or 0
+    local deathStr  = deaths > 0 and "|cffff6666" .. deaths .. "|r" or "|cff888888—|r"
+
     detailInfo:SetText(
         "|cff888888Time|r  |cffdddddd" .. addon.FormatTime(timeMs) .. "|r" ..
-        "          |cff888888Key Upgrade|r  " .. upgradeStr)
+        "     |cff888888Key Upgrade|r  " .. upgradeStr ..
+        "     |cff888888Deaths|r  " .. deathStr)
     detailInfo:Show()
     detailSeparator:Show()
 
@@ -476,7 +472,7 @@ function addon.ShowRunDetail(run)
             else
                 col.score:Hide()
             end
-            -- Player note indicator
+
             local pKey = (member.name or "?") .. "-" .. (member.realm or "")
             col.noteBtn.playerKey  = pKey
             col.noteBtn.playerName = member.name or "?"
@@ -492,7 +488,7 @@ function addon.ShowRunDetail(run)
             HideCol(col)
         end
     end
-    -- Run note
+
     runNoteBox:SetText(run.note or "")
     if run.note and run.note ~= "" then runNotePlaceholder:Hide() else runNotePlaceholder:Show() end
     runNoteSep:Show()
@@ -736,7 +732,7 @@ local ROW_COLOR_SELECTED = { 0.20, 0.25, 0.35, 0.85 }
 
 local HEADER_HEIGHT  = 22
 local headerRows     = {}
-local collapsedDates = {}  -- [dayKey (integer)] = true means that date group is collapsed
+local collapsedDates = {}
 
 local function GetOrCreateRow(index)
     if rows[index] then return rows[index] end
@@ -1202,8 +1198,6 @@ end)
 
 
 -- ─── Statistics Panel ────────────────────────────────────────────────────────
--- Column start positions relative to the scroll content (row-left).
--- Header positions = these + 8 (scroll frame is inset 8px from panel left).
 local SP_COLS = { 4, 162, 202, 242, 282, 346, 406 }
 
 statsPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
@@ -1259,7 +1253,6 @@ local spDungTitle = statsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal"
 spDungTitle:SetPoint("TOPLEFT", statsPanel, "TOPLEFT", 16, -136)
 spDungTitle:SetText("|cffddddddPer Dungeon|r")
 
--- Key range filter boxes (right side of the Per Dungeon header row)
 local function MakeKeyBox(parent)
     local box = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
     box:SetSize(40, 22)
@@ -1296,7 +1289,6 @@ local spRangeLbl = statsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSm
 spRangeLbl:SetPoint("RIGHT", spMinBox, "LEFT", -6, 0)
 spRangeLbl:SetText("|cffddddddKey +|r")
 
--- Date range filter (row below the Per Dungeon + key range row)
 local spDateFilter = "all"  -- "all" | "this" | "last"
 
 local function GetResetStart(weeksAgo)
@@ -1356,7 +1348,7 @@ for i, opt in ipairs(DATE_OPTS) do
     btn:SetScript("OnClick", function(self) SelectDateBtn(self.key) end)
     spDateBtns[i] = btn
 end
-SelectDateBtn("all")  -- default selection
+SelectDateBtn("all")
 
 -- Dungeon filter dropdown
 local spDungFilter = "all"
@@ -1831,9 +1823,9 @@ stateRestoreFrame:SetScript("OnEvent", function(self, _, addonName)
         local win = addon.db.window
         mainFrame:ClearAllPoints()
         mainFrame:SetPoint("CENTER", UIParent, "CENTER", win.x or 0, win.y or 0)
-        -- Scale is applied now so it's ready before the frame is shown
+
         local scale = win.scale or 1.0
-        scaleSlider:SetValue(scale)   -- triggers OnValueChanged → SetScale + label update
+        scaleSlider:SetValue(scale) 
     end
     if addon.db and addon.db.settings then
         timeGroup.SetValue(addon.db.settings.timeFormat or "12h")
@@ -1851,7 +1843,7 @@ function addon.ResetUI()
     mainFrame:ClearAllPoints()
     mainFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     mainFrame:SetSize(520, 638)
-    scaleSlider:SetValue(1.0)  -- triggers OnValueChanged → SetScale + label
+    scaleSlider:SetValue(1.0)
 end
 
 

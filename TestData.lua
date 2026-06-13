@@ -180,6 +180,7 @@ function addon.CreateTestRun()
         run.onTime           = true
         run.runTimeMs        = ms
         run.keystoneUpgrades = RandInt(1, 3)
+        run.deathCount       = RandInt(0, 5)
         run.startTime        = time() - math.floor(ms / 1000)
         result = "|cff00ff00Timed|r"
     elseif roll <= 65 then
@@ -188,15 +189,18 @@ function addon.CreateTestRun()
         run.onTime           = false
         run.runTimeMs        = ms
         run.keystoneUpgrades = 0
+        run.deathCount       = RandInt(3, 12)
         run.startTime        = time() - math.floor(ms / 1000)
         result = "|cffff4444Depleted|r"
     elseif roll <= 85 then
-        run.abandoned = true
-        run.startTime = time() - RandInt(5, 25) * 60
+        run.abandoned  = true
+        run.deathCount = 0
+        run.startTime  = time() - RandInt(5, 25) * 60
         result = "|cff888888Abandoned|r"
     else
-        run.reset     = true
-        run.startTime = time() - RandInt(1, 10) * 60
+        run.reset      = true
+        run.deathCount = 0
+        run.startTime  = time() - RandInt(1, 10) * 60
         result = "|cff888888Reset|r"
     end
 
