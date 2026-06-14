@@ -25,6 +25,7 @@ local function SaveAsAbandoned(reason)
     activeRun.endTime   = time()
     addon.SaveRun(activeRun)
     activeRun = nil
+    if MythicPlusHistoryDB then MythicPlusHistoryDB.activeRun = nil end
     if addon.RefreshUI then addon.RefreshUI() end
     print("|cffff9900[M+ History]|r " .. reason .. " — run saved as abandoned.")
 end
@@ -37,6 +38,7 @@ local function SaveAsReset(reason)
     activeRun.endTime = time()
     addon.SaveRun(activeRun)
     activeRun = nil
+    if MythicPlusHistoryDB then MythicPlusHistoryDB.activeRun = nil end
     if addon.RefreshUI then addon.RefreshUI() end
     print("|cffff9900[M+ History]|r " .. reason .. " — run saved as reset.")
 end
@@ -201,6 +203,8 @@ local function OnChallengeStart()
         SaveAsReset("Run timed out after 90 min")
     end, 1)
 
+    if MythicPlusHistoryDB then MythicPlusHistoryDB.activeRun = activeRun end
+
     FetchPartySpecs(activeRun)
 
     print("|cff00ff00[M+ History]|r Tracking started: +" .. (level or "?") .. " " .. dungeonName)
@@ -269,6 +273,7 @@ local function OnChallengeCompleted(...)
 
     addon.SaveRun(activeRun)
     activeRun = nil
+    if MythicPlusHistoryDB then MythicPlusHistoryDB.activeRun = nil end
 
     if addon.RefreshUI then addon.RefreshUI() end
 
@@ -282,6 +287,28 @@ local function OnChallengeReset()
     if not activeRun then return end
     SaveAsAbandoned("Key reset")
 end
+
+-- Fires on login, reload, and DC reconnect.
+-- Restores activeRun from SavedVariables if the key is still running,
+-- or saves it as abandoned if the player is no longer in that dungeon.
+local function OnPlayerEnteringWorld()
+    if not activeRun then return end
+    local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+                  and C_ChallengeMode.GetActiveChallengeMapID()
+    if mapID and mapID == activeRun.mapID then
+        -- Still in the same key after a DC/reload — refresh what may have changed.
+        if C_ChallengeMode.GetDeathCount then
+            local count, timeLost = C_ChallengeMode.GetDeathCount()
+            activeRun.deathCount  = count    or 0
+            activeRun.timeLostSec = timeLost or 0
+        end
+        FetchPartySpecs(activeRun)
+        print("|cff00ff00[M+ History]|r Reconnected — resuming +" .. (activeRun.keyLevel or "?") .. " " .. activeRun.dungeon)
+    else
+        SaveAsAbandoned("Disconnected mid-key")
+    end
+end
+
 
 local ZONE_OUT_GRACE = 180
 
@@ -459,8 +486,15 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         local addonName = ...
         if addonName == "MythicPlusHistory" then
             addon.InitDB()
+            -- Restore an in-progress run that was interrupted by a DC or /reload.
+            if MythicPlusHistoryDB and MythicPlusHistoryDB.activeRun then
+                activeRun = MythicPlusHistoryDB.activeRun
+            end
             print("|cff00ff00[M+ History]|r Loaded! Type |cffffd700/mtrack|r to open.")
         end
+
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        OnPlayerEnteringWorld()
 
     elseif event == "CHALLENGE_MODE_START" then
         OnChallengeStart()
@@ -492,6 +526,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     end
 end)
 
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("CHALLENGE_MODE_DEATH_COUNT_UPDATED")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("CHALLENGE_MODE_START")
