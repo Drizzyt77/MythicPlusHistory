@@ -114,12 +114,12 @@ inspectFrame:SetScript("OnEvent", function(self, event, guid)
         end
     end
 end)
+inspectFrame:RegisterEvent("INSPECT_READY")
 
 local function FetchPartySpecs(run)
     inspectGen = inspectGen + 1
     local gen  = inspectGen
     inspectRun = run
-    inspectFrame:RegisterEvent("INSPECT_READY")
 
     local delay = 1.0
     for i = 1, 4 do
@@ -135,7 +135,6 @@ local function FetchPartySpecs(run)
 
     C_Timer.After(delay + 3, function()
         if inspectGen ~= gen then return end
-        inspectFrame:UnregisterEvent("INSPECT_READY")
         inspectRun = nil
     end)
 end
@@ -288,9 +287,6 @@ local function OnChallengeReset()
     SaveAsAbandoned("Key reset")
 end
 
--- Fires on login, reload, and DC reconnect.
--- Restores activeRun from SavedVariables if the key is still running,
--- or saves it as abandoned if the player is no longer in that dungeon.
 local function OnPlayerEnteringWorld()
     if not activeRun then return end
     local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
