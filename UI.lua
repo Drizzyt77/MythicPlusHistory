@@ -68,7 +68,7 @@ mainFrame:SetSize(520, 638)
 mainFrame:SetPoint("CENTER")
 mainFrame:SetMovable(true)
 mainFrame:SetResizable(true)
-mainFrame:SetResizeBounds(450, 470, 900, 820)
+mainFrame:SetResizeBounds(480, 470, 900, 820)
 mainFrame:EnableMouse(true)
 mainFrame:RegisterForDrag("LeftButton")
 mainFrame:SetScript("OnDragStart", function(self) self:StartMoving(); self:Raise() end)
@@ -749,8 +749,10 @@ local function GetOrCreateRow(index)
     row.dateText    = MakeText("LEFT",   4,  "LEFT")
     row.dungeonText = MakeText("LEFT", 118,  "LEFT")
     row.levelText   = MakeText("LEFT",  280, "LEFT")
-    row.timeText    = MakeText("LEFT",  330, "LEFT")
+    row.timeText    = MakeText("LEFT",  330, "LEFT"); row.timeText:SetWidth(40)
     row.resultText  = MakeText("RIGHT", -26, "RIGHT")
+    row.noteIcon = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    row.noteIcon:SetPoint("LEFT", row, "LEFT", 308, 0)
 
     local deleteBtn = CreateFrame("Button", nil, row)
     deleteBtn:SetSize(18, ROW_HEIGHT)
@@ -787,6 +789,10 @@ local function GetOrCreateRow(index)
             local rl = ROLE_LABEL[member.role] or member.role or "?"
             GameTooltip:AddLine(string.format("|cff%02x%02x%02x  %s|r  |cff888888(%s — %s)|r",
                 cc.r*255, cc.g*255, cc.b*255, member.name, member.realm, rl), 1,1,1)
+        end
+        if self.runData.note and self.runData.note ~= "" then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("|cff66aaff[Note]|r " .. self.runData.note, 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
@@ -929,6 +935,7 @@ local function RenderRunRow(row, run, yOff, colorOverride)
     elseif run.completed and run.onTime then row.resultText:SetText("|cff00ff00Timed|r")
     elseif run.completed then row.resultText:SetText("|cffff4444Depleted|r")
     else row.resultText:SetText("|cff888888-----|r") end
+    row.noteIcon:SetText((run.note and run.note ~= "") and "|cff66aaff*|r" or "")
     row.runData = run; row:Show()
 end
 
