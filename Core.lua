@@ -21,6 +21,12 @@ local function SaveAsAbandoned(reason)
     if not activeRun then return end
     CancelRunTimeout()
     CancelZoneOutTimer()
+    local elapsed = activeRun.startTime and (time() - activeRun.startTime) or 0
+    if elapsed < 60 then
+        activeRun = nil
+        if MythicPlusHistoryDB then MythicPlusHistoryDB.activeRun = nil end
+        return
+    end
     activeRun.abandoned = true
     activeRun.endTime   = time()
     addon.SaveRun(activeRun)
