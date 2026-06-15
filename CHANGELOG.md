@@ -1,21 +1,6 @@
 # Changelog
-## v1.0.5 (2026-06-13)
-- Fixed an issue where class specs were not being captured
-- Fixed an issue where all Key results were returning +1
-- Fixed death penalty not being applied to key time
-- Added tracking for deaths on the history details
-
-## v1.0.4 (2026-06-12)
-- Add edge case for exiting an instance to change talents
-- Shorten long race names to avoid overlap
-- Fixed runs being recorded as reset when abandoned
-
-## v1.0.0 (2026-06-10)
-### Initial Release
-- Track Mythic+ runs: dungeon, key level, result, and completion time
-- Capture full group composition per run (name, realm, class, spec, role, M+ score)
-- Player notes: add, edit, delete, and search across all noted players
-- LFG applicant alerts: chat notification and tooltip when a noted player applies to your group
-- Statistics panel with key range, date range, and per-dungeon filters
-- Minimap button for quick access
-- Settings panel: 12/24h time format, per-character or account-wide tracking, UI scale slider, and Reset UI
+## v1.0.6
+- Add small indicator for runs with a run note (not player note)
+- Fixed overlapping when UI window was resized to specific sizes
+- Add check to ignore runs less than 1 minute long to avoid tracking key resets
+- Add auto restore function to continue tracking after a disconnect
