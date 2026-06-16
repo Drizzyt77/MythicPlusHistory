@@ -293,7 +293,8 @@ local function OnChallengeReset()
     SaveAsAbandoned("Key reset")
 end
 
-local function OnPlayerEnteringWorld()
+local function OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
+    if not (isInitialLogin or isReloadingUI) then return end
     if not activeRun then return end
     local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
                   and C_ChallengeMode.GetActiveChallengeMapID()
@@ -496,7 +497,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         end
 
     elseif event == "PLAYER_ENTERING_WORLD" then
-        OnPlayerEnteringWorld()
+        OnPlayerEnteringWorld(...)
 
     elseif event == "CHALLENGE_MODE_START" then
         OnChallengeStart()
