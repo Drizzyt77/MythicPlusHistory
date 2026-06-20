@@ -176,10 +176,15 @@ end
 -- ─── Event Handlers ──────────────────────────────────────────────────────────
 
 local function OnChallengeStart()
-    if activeRun then SaveAsAbandoned("New key started") end
-
-    local mapID         = C_ChallengeMode.GetActiveChallengeMapID()
+    local mapID          = C_ChallengeMode.GetActiveChallengeMapID()
     local level, affixes = C_ChallengeMode.GetActiveKeystoneInfo()
+
+    if activeRun and activeRun.mapID == mapID then
+        FetchPartySpecs(activeRun)
+        return
+    end
+
+    if activeRun then SaveAsAbandoned("New key started") end
     local dungeonName   = "Unknown"
 
     local timeLimit = nil
@@ -331,7 +336,8 @@ local function OnZoneChanged()
             CancelZoneOutTimer()
             local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
                           and C_ChallengeMode.GetActiveChallengeMapID()
-            if not (mapID and mapID == activeRun.mapID) then
+
+            if mapID and mapID ~= activeRun.mapID then
                 SaveAsAbandoned("Left dungeon")
             end
         end
