@@ -455,6 +455,44 @@ local function CheckApplicants()
 end
 
 
+-- ─── LFG Search Result Note Lookup ──────────────────────────────────────────
+
+local function LFG_NotesForSearchResult(resultID)
+    if not (addon.db and addon.db.playerNotes) then return {} end
+    local ok, info = pcall(C_LFGList.GetSearchResultInfo, resultID)
+    if not ok or not info then return {} end
+    local found = {}
+    local seen  = {}
+
+    local function checkName(name)
+        if type(name) ~= "string" or name == "" or seen[name] then return end
+        seen[name] = true
+        local key  = name:find("-") and name or (name .. "-" .. GetRealmName())
+        local note = addon.GetPlayerNote(key)
+        if note and note ~= "" then
+            table.insert(found, { name = name, note = note })
+        end
+    end
+
+    if info.leaderName and info.leaderName ~= "" then
+        checkName(info.leaderName)
+    end
+
+    if C_LFGList.GetSearchResultLeaderInfo then
+        local lOk, lInfo = pcall(C_LFGList.GetSearchResultLeaderInfo, resultID)
+        if lOk and lInfo and lInfo.name then checkName(lInfo.name) end
+    end
+
+    local memberCount = math.max(info.numMembers or 0, 5)
+    for i = 1, memberCount do
+        local mOk, mInfo = pcall(C_LFGList.GetSearchResultPlayerInfo, resultID, i)
+        if mOk and mInfo and mInfo.name then checkName(mInfo.name) end
+    end
+
+    return found
+end
+
+
 -- ─── LFG Applicant Tooltip Notes ─────────────────────────────────────────────
 
 local function FindApplicantID(frame)
@@ -466,26 +504,72 @@ local function FindApplicantID(frame)
     return nil, nil
 end
 
+local function FindSearchResultID(frame)
+    for _ = 1, 8 do
+        if not frame then break end
+        local id = frame.searchResultID or frame.resultID or frame.lfgSearchResultID or frame.entryID
+        if id then return id end
+        frame = frame.GetParent and frame:GetParent()
+    end
+    return nil
+end
+
 GameTooltip:HookScript("OnShow", function(self)
     if not (addon.db and addon.db.playerNotes) then return end
     local owner = self:GetOwner()
     if not owner then return end
 
     local applicantID = FindApplicantID(owner)
-    if not applicantID then return end
+    if applicantID then
+        C_Timer.After(0, function()
+            if not self:IsShown() then return end
+            local name, note = LFG_NoteForApplicant(applicantID)
+            if name and note then
+                self:AddLine(" ")
+                self:AddLine("|cff00ff00M+ History Note:|r")
+                self:AddLine("|cffffff88" .. note .. "|r", 1, 1, 1, true)
+                self:Show()
+            end
+        end)
+        return
+    end
 
-    C_Timer.After(0, function()
-        if not self:IsShown() then return end
-        local name, note = LFG_NoteForApplicant(applicantID)
-        if name and note then
-            self:AddLine("")
-            self:AddLine("|cff00ff00M+ History Note:|r")
-            self:AddLine("|cffffff88" .. note .. "|r", 1, 1, 1, true)
-            self:Show()
-        end
-    end)
+    local resultID = FindSearchResultID(owner)
+    if resultID then
+        C_Timer.After(0, function()
+            if not self:IsShown() then return end
+            local notes = LFG_NotesForSearchResult(resultID)
+            if #notes > 0 then
+                self:AddLine(" ")
+                self:AddLine("|cff00ff00M+ History Notes:|r")
+                for _, entry in ipairs(notes) do
+                    self:AddLine("|cffffff88[" .. entry.name .. "]|r " .. entry.note, 1, 1, 1, true)
+                end
+                self:Show()
+            end
+        end)
+    end
 end)
 
+if LFGListSearchResultButton_OnEnter then
+    hooksecurefunc("LFGListSearchResultButton_OnEnter", function(self)
+        if not (addon.db and addon.db.playerNotes) then return end
+        local resultID = self.searchResultID or self.resultID or self.lfgSearchResultID or self.entryID
+        if not resultID then return end
+        C_Timer.After(0.05, function()
+            if not GameTooltip:IsShown() then return end
+            local notes = LFG_NotesForSearchResult(resultID)
+            if #notes > 0 then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("|cff00ff00M+ History Notes:|r")
+                for _, entry in ipairs(notes) do
+                    GameTooltip:AddLine("|cffffff88[" .. entry.name .. "]|r " .. entry.note, 1, 1, 1, true)
+                end
+                GameTooltip:Show()
+            end
+        end)
+    end)
+end
 
 
 -- ─── Event Dispatcher ────────────────────────────────────────────────────────
