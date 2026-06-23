@@ -568,8 +568,6 @@ acDropdown:SetBackdropColor(0.10, 0.12, 0.18, 0.97)
 acDropdown:SetBackdropBorderColor(0.40, 0.40, 0.60, 1)
 acDropdown:Hide()
 
--- ─── Chip helpers ─────────────────────────────────────────────────────────────
-
 local CHIP_CHAR_W = 6
 local CHIP_XBTN_W = 14
 
@@ -638,8 +636,6 @@ RebuildFilterBar = function()
     end
 end
 
--- ─── Single-filter matcher (shared by RunMatchesActiveFilters and RunMatchesFilter) ─
-
 local function RunMatchesSingleFilter(run, query, isExact)
     if not query or query == "" then return true end
     local q = query:lower()
@@ -671,8 +667,6 @@ local function RunMatchesActiveFilters(run)
     end
     return true
 end
-
--- ─── Autocomplete buttons ─────────────────────────────────────────────────────
 
 local acButtons = {}
 for i = 1, AC_MAX do
