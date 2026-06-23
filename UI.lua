@@ -902,6 +902,7 @@ local function GetOrCreateRow(index)
 
     row:SetScript("OnEnter", function(self)
         if not self.runData then return end
+        if settingsPanel:IsShown() or statsPanel:IsShown() or notesPanel:IsShown() then return end
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
         GameTooltip:SetText("|cff00ccff" .. self.runData.dungeon .. " +" .. self.runData.keyLevel .. "|r")
         GameTooltip:AddLine(" "); GameTooltip:AddLine("|cffffd700Group:|r")
