@@ -511,23 +511,31 @@ divider2:SetHeight(1)
 divider2:SetColorTexture(0.3, 0.3, 0.4, 0.8)
 
 
--- ─── Search Box ───────────────────────────────────────────────────────────────
+-- ─── Filter Bar ───────────────────────────────────────────────────────────────
 
-local searchBox = CreateFrame("EditBox", "MythicPlusHistorySearch", mainFrame, "BackdropTemplate")
-searchBox:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8,   -284)
-searchBox:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -28, -284)
-searchBox:SetHeight(22)
-searchBox:SetBackdrop({
+local activeFilters    = {}   -- { value=string, isExact=bool }
+local chipFrames       = {}   -- reusable chip frame pool
+local RebuildFilterBar        -- forward declaration
+
+local filterBar = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
+filterBar:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8,   -284)
+filterBar:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -28, -284)
+filterBar:SetHeight(22)
+filterBar:SetBackdrop({
     bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
     edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
     tile = true, tileSize = 8, edgeSize = 8,
     insets = { left = 2, right = 2, top = 2, bottom = 2 },
 })
-searchBox:SetBackdropColor(0.10, 0.10, 0.15, 0.9)
-searchBox:SetBackdropBorderColor(0.30, 0.30, 0.50, 0.8)
+filterBar:SetBackdropColor(0.10, 0.10, 0.15, 0.9)
+filterBar:SetBackdropBorderColor(0.30, 0.30, 0.50, 0.8)
+
+local searchBox = CreateFrame("EditBox", "MythicPlusHistorySearch", filterBar)
+searchBox:SetPoint("TOPLEFT",     filterBar, "TOPLEFT",     3, -1)
+searchBox:SetPoint("BOTTOMRIGHT", filterBar, "BOTTOMRIGHT", -2,  1)
 searchBox:SetAutoFocus(false)
 searchBox:SetFontObject("GameFontNormalSmall")
-searchBox:SetTextInsets(6, 4, 2, 2)
+searchBox:SetTextInsets(4, 4, 2, 2)
 searchBox:SetMaxLetters(64)
 
 local searchHint = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -560,6 +568,112 @@ acDropdown:SetBackdropColor(0.10, 0.12, 0.18, 0.97)
 acDropdown:SetBackdropBorderColor(0.40, 0.40, 0.60, 1)
 acDropdown:Hide()
 
+-- ─── Chip helpers ─────────────────────────────────────────────────────────────
+
+local CHIP_CHAR_W = 6
+local CHIP_XBTN_W = 14
+
+local function ChipPixelWidth(text)
+    return math.max(36, #text * CHIP_CHAR_W + CHIP_XBTN_W + 8)
+end
+
+local function GetOrCreateChip(i)
+    if chipFrames[i] then return chipFrames[i] end
+    local chip = CreateFrame("Frame", nil, filterBar, "BackdropTemplate")
+    chip:SetHeight(16)
+    chip:SetBackdrop({
+        bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        tile = true, tileSize = 8, edgeSize = 8,
+        insets = { left = 1, right = 1, top = 1, bottom = 1 },
+    })
+    chip:SetBackdropColor(0.15, 0.25, 0.45, 0.9)
+    chip:SetBackdropBorderColor(0.40, 0.55, 0.80, 1)
+
+    chip.label = chip:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    chip.label:SetPoint("LEFT",  chip, "LEFT",  4, 0)
+    chip.label:SetPoint("RIGHT", chip, "RIGHT", -13, 0)
+    chip.label:SetJustifyH("LEFT")
+
+    chip.xBtn = CreateFrame("Button", nil, chip)
+    chip.xBtn:SetSize(12, 12)
+    chip.xBtn:SetPoint("RIGHT", chip, "RIGHT", -1, 0)
+    chip.xBtn:SetNormalFontObject("GameFontNormalSmall")
+    chip.xBtn:SetText("x")
+    chip.xBtn:SetScript("OnEnter", function(self) self:GetParent():SetBackdropColor(0.25,0.15,0.15,0.9) end)
+    chip.xBtn:SetScript("OnLeave", function(self) self:GetParent():SetBackdropColor(0.15,0.25,0.45,0.9) end)
+    chip.xBtn:SetScript("OnClick", function(self)
+        table.remove(activeFilters, self:GetParent().filterIndex)
+        RebuildFilterBar()
+        if addon.RefreshUI then addon.RefreshUI() end
+    end)
+
+    chipFrames[i] = chip
+    return chip
+end
+
+RebuildFilterBar = function()
+    local xOff = 3
+    for i, filter in ipairs(activeFilters) do
+        local chip = GetOrCreateChip(i)
+        chip.filterIndex = i
+        chip.label:SetText(filter.value)
+        local cw = ChipPixelWidth(filter.value)
+        chip:SetWidth(cw)
+        chip:ClearAllPoints()
+        chip:SetPoint("TOPLEFT", filterBar, "TOPLEFT", xOff, -3)
+        chip:Show()
+        xOff = xOff + cw + 2
+    end
+    for i = #activeFilters + 1, #chipFrames do
+        chipFrames[i]:Hide()
+    end
+    searchBox:ClearAllPoints()
+    searchBox:SetPoint("TOPLEFT",     filterBar, "TOPLEFT",     xOff, -1)
+    searchBox:SetPoint("BOTTOMRIGHT", filterBar, "BOTTOMRIGHT", -2,    1)
+    if #activeFilters == 0 and searchBox:GetText() == "" then
+        searchHint:Show()
+    else
+        searchHint:Hide()
+    end
+end
+
+-- ─── Single-filter matcher (shared by RunMatchesActiveFilters and RunMatchesFilter) ─
+
+local function RunMatchesSingleFilter(run, query, isExact)
+    if not query or query == "" then return true end
+    local q = query:lower()
+    if q == "timed"     then return run.completed and run.onTime end
+    if q == "depleted"  then return run.completed and not run.onTime and not run.abandoned end
+    if q == "abandoned" then return run.abandoned end
+    if q == "reset"     then return run.reset end
+    local level = q:match("^%+?(%d+)$")
+    if level then return tostring(run.keyLevel) == level end
+    if run.dungeon and run.dungeon:lower():find(q,1,true) then return true end
+    local dateStr = addon.FormatDate and addon.FormatDate(run.startTime) or ""
+    if dateStr:find(q,1,true) then return true end
+    for _, m in ipairs(run.members or {}) do
+        if m.name then
+            if isExact then
+                if m.name:lower() == q then return true end
+            else
+                if m.name:lower():find(q,1,true) then return true end
+            end
+        end
+    end
+    return false
+end
+
+local function RunMatchesActiveFilters(run)
+    if #activeFilters == 0 then return true end
+    for _, f in ipairs(activeFilters) do
+        if not RunMatchesSingleFilter(run, f.value, f.isExact) then return false end
+    end
+    return true
+end
+
+-- ─── Autocomplete buttons ─────────────────────────────────────────────────────
+
 local acButtons = {}
 for i = 1, AC_MAX do
     local btn = CreateFrame("Button", nil, acDropdown)
@@ -571,7 +685,17 @@ for i = 1, AC_MAX do
     btn:SetScript("OnLeave", function(self) self.bg:SetColorTexture(0,0,0,0) end)
     local label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"); label:SetPoint("LEFT", btn, "LEFT", 4, 0); btn.label = label
     btn:SetScript("OnClick", function(self)
-        searchBox:SetText(self.value or ""); acDropdown:Hide()
+        local val = self.value
+        if not val or val == "" then return end
+        for _, f in ipairs(activeFilters) do
+            if f.value == val then
+                searchBox:SetText(""); acDropdown:Hide()
+                return
+            end
+        end
+        table.insert(activeFilters, { value = val, isExact = true })
+        searchBox:SetText(""); acDropdown:Hide()
+        RebuildFilterBar()
         if addon.RefreshUI then addon.RefreshUI() end
     end)
     acButtons[i] = btn; btn:Hide()
@@ -585,11 +709,13 @@ local function GetSuggestions(query)
     end
     if addon.GetRuns then
         for _, run in ipairs(addon.GetRuns()) do
-            local d = run.dungeon
-            if d and d:lower():find(q,1,true) and not seen[d] then table.insert(results,d); seen[d]=true end
-            for _, m in ipairs(run.members or {}) do
-                local n = m.name
-                if n and n:lower():find(q,1,true) and not seen[n] then table.insert(results,n); seen[n]=true end
+            if RunMatchesActiveFilters(run) then
+                local d = run.dungeon
+                if d and d:lower():find(q,1,true) and not seen[d] then table.insert(results,d); seen[d]=true end
+                for _, m in ipairs(run.members or {}) do
+                    local n = m.name
+                    if n and n:lower():find(q,1,true) and not seen[n] then table.insert(results,n); seen[n]=true end
+                end
             end
         end
     end
@@ -609,23 +735,24 @@ local function UpdateAutocomplete(query)
 end
 
 searchBox:SetScript("OnEditFocusGained", function(self)
-    self:SetText("")
     searchHint:Hide()
     if addon.RefreshUI then addon.RefreshUI() end
 end)
 searchBox:SetScript("OnEditFocusLost",   function(self)
-    if self:GetText() == "" then searchHint:Show() end
+    if self:GetText() == "" and #activeFilters == 0 then searchHint:Show() end
     C_Timer.After(0.15, function() acDropdown:Hide() end)
 end)
 searchBox:SetScript("OnTextChanged", function(self)
     local text = self:GetText()
-    if text == "" then searchHint:Show() else searchHint:Hide() end
+    if text == "" and #activeFilters == 0 then searchHint:Show() else searchHint:Hide() end
     if addon.RefreshUI then addon.RefreshUI() end
     UpdateAutocomplete(text)
 end)
 searchBox:SetScript("OnEnterPressed",  function(self) acDropdown:Hide(); self:ClearFocus() end)
 searchBox:SetScript("OnEscapePressed", function(self)
+    activeFilters = {}
     self:SetText(""); acDropdown:Hide(); self:ClearFocus()
+    RebuildFilterBar()
     if addon.RefreshUI then addon.RefreshUI() end
 end)
 
@@ -880,22 +1007,16 @@ end
 
 -- ─── Filter ───────────────────────────────────────────────────────────────────
 
-local function RunMatchesFilter(run, query)
-    if not query or query == "" then return true end
-    local q = query:lower()
-    if q == "timed"     then return run.completed and run.onTime end
-    if q == "depleted"  then return run.completed and not run.onTime and not run.abandoned end
-    if q == "abandoned" then return run.abandoned end
-    if q == "reset"     then return run.reset end
-    local level = q:match("^%+?(%d+)$")
-    if level then return tostring(run.keyLevel) == level end
-    if run.dungeon and run.dungeon:lower():find(q,1,true) then return true end
-    local dateStr = addon.FormatDate and addon.FormatDate(run.startTime) or ""
-    if dateStr:find(q,1,true) then return true end
-    for _, m in ipairs(run.members or {}) do
-        if m.name and m.name:lower():find(q,1,true) then return true end
+local function RunMatchesFilter(run)
+    local textQuery = searchBox and searchBox:GetText() or ""
+    if #activeFilters == 0 and textQuery == "" then return true end
+    for _, f in ipairs(activeFilters) do
+        if not RunMatchesSingleFilter(run, f.value, f.isExact) then return false end
     end
-    return false
+    if textQuery ~= "" then
+        if not RunMatchesSingleFilter(run, textQuery, false) then return false end
+    end
+    return true
 end
 
 
@@ -960,7 +1081,8 @@ function addon.RefreshUI()
         testBtn:SetText("+ Test Run")
     end
 
-    local query      = searchBox and searchBox:GetText() or ""
+    local textQuery  = searchBox and searchBox:GetText() or ""
+    local hasFilters = #activeFilters > 0 or textQuery ~= ""
     local allRuns    = addon.GetDisplayRuns()
     local total      = #allRuns
     local grandTotal = addon.GetRunCount()
@@ -979,11 +1101,11 @@ function addon.RefreshUI()
         return
     end
 
-    if query ~= "" then
+    if hasFilters then
         -- ── Flat search: all matching runs, no grouping ──────────────────────
         local filtered = {}
         for i = total, 1, -1 do
-            if RunMatchesFilter(allRuns[i], query) then table.insert(filtered, allRuns[i]) end
+            if RunMatchesFilter(allRuns[i]) then table.insert(filtered, allRuns[i]) end
         end
         if isCharMode then
             runCountLabel:SetText("Runs: " .. total .. "  |cff888888(of " .. grandTotal .. " account-wide, showing " .. #filtered .. ")|r")
