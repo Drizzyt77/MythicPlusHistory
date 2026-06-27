@@ -579,10 +579,17 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         local addonName = ...
         if addonName == "MythicPlusHistory" then
             addon.InitDB()
-            -- Restore an in-progress run that was interrupted by a DC or /reload.
             if MythicPlusHistoryDB and MythicPlusHistoryDB.activeRun then
                 activeRun = MythicPlusHistoryDB.activeRun
             end
+            C_Timer.NewTicker(60, function()
+                if not activeRun then return end
+                local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+                              and C_ChallengeMode.GetActiveChallengeMapID()
+                if not mapID then
+                    SaveAsAbandoned("Run no longer active")
+                end
+            end)
             print("|cff00ff00[M+ History]|r Loaded! Type |cffffd700/mtrack|r to open.")
         end
 
@@ -604,6 +611,14 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "GROUP_ROSTER_UPDATE" then
         if not IsInGroup() and not IsInRaid() then
             wipe(alertedPlayers)
+            if activeRun then
+                C_Timer.After(3, function()
+                    if not activeRun then return end
+                    local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
+                                  and C_ChallengeMode.GetActiveChallengeMapID()
+                    if not mapID then SaveAsAbandoned("Group disbanded") end
+                end)
+            end
         else
             CheckNewGroupMembers()
         end
