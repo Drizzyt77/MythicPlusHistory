@@ -111,80 +111,10 @@ closeBtn:SetScript("OnClick", function() mainFrame:Hide() end)
 
 local settingsPanel, timeGroup, trackGroup, testBtn, statsPanel, notesPanel
 
-local gearBtn = CreateFrame("Button", nil, mainFrame)
-gearBtn:SetSize(20, 20)
-gearBtn:SetPoint("RIGHT", closeBtn, "LEFT", -6, 0)
-local gearTex = gearBtn:CreateTexture(nil, "ARTWORK")
-gearTex:SetAllPoints()
-gearTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\settings_gear_icon")
-gearTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-gearTex:SetAlpha(0.55)
-gearBtn.tex = gearTex
-local gearHL = gearBtn:CreateTexture(nil, "HIGHLIGHT")
-gearHL:SetAllPoints(); gearHL:SetColorTexture(1, 1, 1, 0.18)
-gearBtn:SetScript("OnEnter", function(self) self.tex:SetAlpha(1.0) end)
-gearBtn:SetScript("OnLeave", function(self) self.tex:SetAlpha(0.55) end)
-gearBtn:SetScript("OnClick", function()
-    if settingsPanel:IsShown() then
-        settingsPanel:Hide()
-    else
-        statsPanel:Hide()
-        notesPanel:Hide()
-        if addon.db and addon.db.settings then
-            timeGroup.SetValue(addon.db.settings.timeFormat or "12h")
-            trackGroup.SetValue(addon.db.settings.trackingMode or "account")
-        end
-        settingsPanel:Show()
-    end
-end)
-
-local statsBtn = CreateFrame("Button", nil, mainFrame)
-statsBtn:SetSize(20, 20)
-statsBtn:SetPoint("RIGHT", gearBtn, "LEFT", -6, 0)
-local statsTex = statsBtn:CreateTexture(nil, "ARTWORK")
-statsTex:SetAllPoints()
-statsTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\statistics_icon")
-statsTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-statsTex:SetAlpha(0.55)
-statsBtn.tex = statsTex
-local statsHL = statsBtn:CreateTexture(nil, "HIGHLIGHT")
-statsHL:SetAllPoints(); statsHL:SetColorTexture(1, 1, 1, 0.18)
-statsBtn:SetScript("OnEnter", function(self) self.tex:SetAlpha(1.0) end)
-statsBtn:SetScript("OnLeave", function(self) self.tex:SetAlpha(0.55) end)
-statsBtn:SetScript("OnClick", function()
-    if statsPanel:IsShown() then
-        statsPanel:Hide()
-    else
-        settingsPanel:Hide()
-        notesPanel:Hide()
-        statsPanel:Show()
-        addon.RefreshStats()
-    end
-end)
-
-
-local notesBtn = CreateFrame("Button", nil, mainFrame)
-notesBtn:SetSize(20, 20)
-notesBtn:SetPoint("RIGHT", statsBtn, "LEFT", -6, 0)
-local notesTex = notesBtn:CreateTexture(nil, "ARTWORK")
-notesTex:SetAllPoints()
-notesTex:SetTexture("Interface\\AddOns\\MythicPlusHistory\\ICONS\\notes_icon")
-notesTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-notesTex:SetAlpha(0.55)
-notesBtn.tex = notesTex
-local notesHL = notesBtn:CreateTexture(nil, "HIGHLIGHT")
-notesHL:SetAllPoints(); notesHL:SetColorTexture(1, 1, 1, 0.18)
-notesBtn:SetScript("OnEnter", function(self) self.tex:SetAlpha(1.0) end)
-notesBtn:SetScript("OnLeave", function(self) self.tex:SetAlpha(0.55) end)
-notesBtn:SetScript("OnClick", function()
-    if notesPanel:IsShown() then
-        notesPanel:Hide()
-    else
-        settingsPanel:Hide()
-        statsPanel:Hide()
-        notesPanel:Show()
-    end
-end)
+local TAB_W      = 28
+local activeTab  = "runs"
+local tabButtons = {}
+local ShowTab
 
 
 -- ─── Scale Slider ─────────────────────────────────────────────────────────────
@@ -220,10 +150,65 @@ end)
 -- ─── Divider 1 ────────────────────────────────────────────────────────────────
 
 local divider1 = mainFrame:CreateTexture(nil, "ARTWORK")
-divider1:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8, -66)
-divider1:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8, -66)
+divider1:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  0, -66)
+divider1:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", 0, -66)
 divider1:SetHeight(1)
 divider1:SetColorTexture(0.3, 0.3, 0.4, 0.8)
+
+
+-- ─── Tab Strip ────────────────────────────────────────────────────────────────
+
+
+local tabDefs = {
+    { name = "runs",     label = "M+", icon = nil },
+    { name = "stats",    label = nil,  icon = "Interface\\AddOns\\MythicPlusHistory\\ICONS\\statistics_icon" },
+    { name = "notes",    label = nil,  icon = "Interface\\AddOns\\MythicPlusHistory\\ICONS\\notes_icon" },
+    { name = "settings", label = nil,  icon = "Interface\\AddOns\\MythicPlusHistory\\ICONS\\settings_gear_icon" },
+}
+local tabTooltips = { runs = "M+ History", stats = "Statistics", notes = "Player Notes", settings = "Settings" }
+
+for idx, def in ipairs(tabDefs) do
+    local yOff = -70 - (idx - 1) * 48
+    local btn = CreateFrame("Button", nil, mainFrame, "BackdropTemplate")
+    btn:SetSize(TAB_W, 44)
+    btn:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", -TAB_W, yOff)
+    btn:SetBackdrop({
+        bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        tile = true, tileSize = 8, edgeSize = 8,
+        insets = { left = 1, right = 1, top = 1, bottom = 1 },
+    })
+    btn:SetBackdropColor(0.08, 0.08, 0.12, 0.7)
+    btn:SetBackdropBorderColor(0.30, 0.30, 0.50, 0.8)
+    if def.icon then
+        local tex = btn:CreateTexture(nil, "ARTWORK")
+        tex:SetSize(20, 20)
+        tex:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        tex:SetTexture(def.icon)
+        tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        tex:SetAlpha(0.50)
+        btn.icon = tex
+    else
+        local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        lbl:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        lbl:SetText(def.label)
+        lbl:SetAlpha(0.50)
+        btn.label = lbl
+    end
+    btn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(0.15, 0.20, 0.35, 0.9)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(tabTooltips[def.name])
+        GameTooltip:Show()
+    end)
+    btn:SetScript("OnLeave", function(self)
+        local active = activeTab == def.name
+        self:SetBackdropColor(active and 0.20 or 0.08, active and 0.30 or 0.08, active and 0.50 or 0.12, active and 0.9 or 0.7)
+        GameTooltip:Hide()
+    end)
+    btn:SetScript("OnClick", function() ShowTab(def.name) end)
+    tabButtons[def.name] = btn
+end
 
 
 addon.selectedRun = nil
@@ -411,6 +396,7 @@ local function UpdateMemberColumns()
 end
 
 function addon.ShowRunDetail(run)
+    detailPanel:Show()
     detailPlaceholder:Hide()
     local resultStr
     if run.reset then resultStr = "|cffff8800Reset|r"
@@ -518,7 +504,7 @@ local chipFrames       = {}   -- reusable chip frame pool
 local RebuildFilterBar        -- forward declaration
 
 local filterBar = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
-filterBar:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8,   -284)
+filterBar:SetPoint("TOPLEFT",  mainFrame, "TOPLEFT",  8,  -284)
 filterBar:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -28, -284)
 filterBar:SetHeight(22)
 filterBar:SetBackdrop({
@@ -754,7 +740,7 @@ end)
 -- ─── Scroll Frame ─────────────────────────────────────────────────────────────
 
 local scrollFrame = CreateFrame("ScrollFrame", nil, mainFrame, "UIPanelScrollFrameTemplate")
-scrollFrame:SetPoint("TOPLEFT",     mainFrame, "TOPLEFT",    8,  -336)
+scrollFrame:SetPoint("TOPLEFT",     mainFrame, "TOPLEFT",    8, -336)
 scrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -28, 8)
 
 local content = CreateFrame("Frame", nil, scrollFrame)
@@ -1198,10 +1184,6 @@ stDiv:SetPoint("TOPRIGHT", settingsPanel, "TOPRIGHT",  -8, -40)
 stDiv:SetHeight(1)
 stDiv:SetColorTexture(0.3, 0.3, 0.4, 0.6)
 
-local stCloseBtn = CreateFrame("Button", nil, settingsPanel, "UIPanelCloseButton")
-stCloseBtn:SetSize(28, 28)
-stCloseBtn:SetPoint("TOPRIGHT", settingsPanel, "TOPRIGHT", 2, 2)
-stCloseBtn:SetScript("OnClick", function() settingsPanel:Hide() end)
 
 local function CreateOptionGroup(parent, yTop, header, opts)
     local hdr = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -1342,10 +1324,6 @@ local spTitle = statsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge
 spTitle:SetPoint("TOP", statsPanel, "TOP", 0, -16)
 spTitle:SetText("|cffaaccffStatistics|r")
 
-local spCloseBtn = CreateFrame("Button", nil, statsPanel, "UIPanelCloseButton")
-spCloseBtn:SetSize(28, 28)
-spCloseBtn:SetPoint("TOPRIGHT", statsPanel, "TOPRIGHT", 2, 2)
-spCloseBtn:SetScript("OnClick", function() statsPanel:Hide() end)
 
 local spDiv1 = statsPanel:CreateTexture(nil, "ARTWORK")
 spDiv1:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",   8, -40)
@@ -1710,10 +1688,6 @@ local npTitle = notesPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge
 npTitle:SetPoint("TOP", notesPanel, "TOP", 0, -16)
 npTitle:SetText("|cffaaccffPlayer Notes|r")
 
-local npCloseBtn = CreateFrame("Button", nil, notesPanel, "UIPanelCloseButton")
-npCloseBtn:SetSize(28, 28)
-npCloseBtn:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT", 2, 2)
-npCloseBtn:SetScript("OnClick", function() notesPanel:Hide() end)
 
 local npDiv1 = notesPanel:CreateTexture(nil, "ARTWORK")
 npDiv1:SetPoint("TOPLEFT",  notesPanel, "TOPLEFT",   8, -40)
@@ -1938,6 +1912,41 @@ end
 
 -- ─── Restore window state after DB loads ──────────────────────────────────────
 
+-- ─── Tab Navigation ───────────────────────────────────────────────────────────
+
+local runsViewFrames = { divider2, filterBar, runCountLabel, scrollFrame }
+
+ShowTab = function(name)
+    activeTab = name
+    local isRuns = name == "runs"
+    for _, f in ipairs(runsViewFrames) do f:SetShown(isRuns) end
+    if not isRuns then
+        detailPanel:Hide()
+    elseif addon.selectedRun then
+        detailPanel:Show()
+    end
+    settingsPanel:SetShown(name == "settings")
+    statsPanel:SetShown(name == "stats")
+    notesPanel:SetShown(name == "notes")
+    for tabName, btn in pairs(tabButtons) do
+        local active = tabName == name
+        btn:SetBackdropColor(active and 0.20 or 0.08, active and 0.30 or 0.08, active and 0.50 or 0.12, active and 0.9 or 0.7)
+        btn:SetBackdropBorderColor(active and 0.50 or 0.30, active and 0.60 or 0.30, active and 0.90 or 0.50, 1)
+        local alpha = active and 1.0 or 0.50
+        if btn.icon  then btn.icon:SetAlpha(alpha)  end
+        if btn.label then btn.label:SetAlpha(alpha) end
+    end
+    if name == "settings" and addon.db and addon.db.settings then
+        timeGroup.SetValue(addon.db.settings.timeFormat or "12h")
+        trackGroup.SetValue(addon.db.settings.trackingMode or "account")
+    end
+    if name == "stats" and addon.RefreshStats then addon.RefreshStats() end
+    if isRuns and addon.RefreshUI then addon.RefreshUI() end
+end
+
+ShowTab("runs")
+
+
 local stateRestoreFrame = CreateFrame("Frame")
 stateRestoreFrame:RegisterEvent("ADDON_LOADED")
 stateRestoreFrame:SetScript("OnEvent", function(self, _, addonName)
@@ -1980,6 +1989,7 @@ function addon.ToggleUI()
     else
         addon.ClearRunDetail()
         addon.selectedRun = nil
+        ShowTab("runs")
         if addon.db and addon.db.window then
             local win = addon.db.window
             mainFrame:SetSize(win.width or 520, win.height or 582)
