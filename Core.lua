@@ -312,7 +312,7 @@ local function OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
         end
         FetchPartySpecs(activeRun)
         print("|cff00ff00[M+ History]|r Reconnected — resuming +" .. (activeRun.keyLevel or "?") .. " " .. activeRun.dungeon)
-    else
+    elseif not isReloadingUI then
         SaveAsAbandoned("Disconnected mid-key")
     end
 end
