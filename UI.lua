@@ -817,10 +817,24 @@ gripTex:SetAllPoints()
 gripTex:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 resizeHandle:SetScript("OnEnter", function() gripTex:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight") end)
 resizeHandle:SetScript("OnLeave", function() gripTex:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up") end)
-resizeHandle:SetScript("OnMouseDown", function() mainFrame:StartSizing("BOTTOMRIGHT"); mainFrame:Raise() end)
+resizeHandle:SetScript("OnMouseDown", function()
+    local left = mainFrame:GetLeft()
+    local top  = mainFrame:GetTop()
+    mainFrame:ClearAllPoints()
+    mainFrame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    mainFrame:StartSizing("BOTTOMRIGHT")
+    mainFrame:Raise()
+end)
 resizeHandle:SetScript("OnMouseUp", function()
     mainFrame:StopMovingOrSizing()
-    if addon.db then addon.db.window.width = mainFrame:GetWidth(); addon.db.window.height = mainFrame:GetHeight() end
+    if addon.db and addon.db.window then
+        addon.db.window.width  = mainFrame:GetWidth()
+        addon.db.window.height = mainFrame:GetHeight()
+        local cx, cy = UIParent:GetCenter()
+        local x,  y  = mainFrame:GetCenter()
+        addon.db.window.x = x - cx
+        addon.db.window.y = y - cy
+    end
     C_Timer.After(0, function()
         UpdateMemberColumns()
         content:SetWidth(scrollFrame:GetWidth())
