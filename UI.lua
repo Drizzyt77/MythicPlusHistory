@@ -1563,11 +1563,28 @@ spScrollFrame:SetPoint("TOPLEFT",     statsPanel, "TOPLEFT",     8,  -226)
 spScrollFrame:SetPoint("BOTTOMRIGHT", statsPanel, "BOTTOMRIGHT", -28,  8)
 
 local spContent = CreateFrame("Frame", nil, spScrollFrame)
-spContent:SetSize(spScrollFrame:GetWidth(), 1)
+spContent:SetHeight(1)
 spScrollFrame:SetScrollChild(spContent)
+spScrollFrame:SetScript("OnSizeChanged", function()
+    spContent:SetWidth(spScrollFrame:GetWidth())
+    if addon.RefreshStats then addon.RefreshStats() end
+end)
 
-local DUNG_ROW_H = 20
-local dungRows   = {}
+local DUNG_ROW_H  = 20
+local dungRows    = {}
+local spStripes   = {}
+
+local function GetOrCreateDungStripe(idx)
+    if spStripes[idx] then return spStripes[idx] end
+    local f = CreateFrame("Frame", nil, spContent)
+    f:SetHeight(DUNG_ROW_H)
+    f:SetPoint("TOPLEFT",  spContent, "TOPLEFT",  0, -(idx - 1) * DUNG_ROW_H)
+    f:SetPoint("TOPRIGHT", spContent, "TOPRIGHT", 0, -(idx - 1) * DUNG_ROW_H)
+    local bg = f:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+    bg:SetColorTexture(0, 0, 0, idx % 2 == 0 and 0.25 or 0.1)
+    spStripes[idx] = f
+    return f
+end
 
 local function GetOrCreateDungRow(idx)
     if dungRows[idx] then return dungRows[idx] end
@@ -1575,8 +1592,7 @@ local function GetOrCreateDungRow(idx)
     row:SetHeight(DUNG_ROW_H)
     row:SetPoint("TOPLEFT",  spContent, "TOPLEFT",  0, -(idx - 1) * DUNG_ROW_H)
     row:SetPoint("TOPRIGHT", spContent, "TOPRIGHT", 0, -(idx - 1) * DUNG_ROW_H)
-    local bg = row:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, idx % 2 == 0 and 0.25 or 0.1)
+    row:SetFrameLevel(spContent:GetFrameLevel() + 4)
     local function MakeFS(colIdx)
         local fs = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         fs:SetPoint("LEFT", row, "LEFT", SP_COLS[colIdx], 0)
@@ -1596,6 +1612,7 @@ end
 
 function addon.RefreshStats()
     if not statsPanel:IsShown() then return end
+    spContent:SetWidth(spScrollFrame:GetWidth())
     local runs = addon.GetDisplayRuns()
     local minK   = tonumber(spMinBox:GetText()) or 0
     local maxK   = tonumber(spMaxBox:GetText()) or 99999
@@ -1664,7 +1681,12 @@ function addon.RefreshStats()
         row:Show()
     end
     for i = #sorted + 1, #dungRows do dungRows[i]:Hide() end
-    spContent:SetHeight(math.max(#sorted * DUNG_ROW_H, 1))
+
+    local visibleRows = math.ceil((spScrollFrame:GetHeight() or 0) / DUNG_ROW_H) + 1
+    local totalStripes = math.max(#sorted, visibleRows)
+    for i = 1, totalStripes do GetOrCreateDungStripe(i):Show() end
+    for i = totalStripes + 1, #spStripes do spStripes[i]:Hide() end
+    spContent:SetHeight(math.max(totalStripes * DUNG_ROW_H, 1))
 end
 
 
@@ -1695,8 +1717,8 @@ npDiv1:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT",  -8, -40)
 npDiv1:SetHeight(1); npDiv1:SetColorTexture(0.3, 0.3, 0.4, 0.6)
 
 local npSearch = CreateFrame("EditBox", nil, notesPanel, "BackdropTemplate")
-npSearch:SetPoint("TOPLEFT",  notesPanel, "TOPLEFT",   8, -44)
-npSearch:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT", -8, -44)
+npSearch:SetPoint("TOPLEFT",  notesPanel, "TOPLEFT",   14, -48)
+npSearch:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT", -14, -48)
 npSearch:SetHeight(22)
 npSearch:SetBackdrop({
     bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
@@ -1720,20 +1742,41 @@ npSearch:SetScript("OnEditFocusGained", function() npSearchHint:Hide() end)
 npSearch:SetScript("OnEditFocusLost",   function(self) if self:GetText() == "" then npSearchHint:Show() end end)
 
 local npDiv2 = notesPanel:CreateTexture(nil, "ARTWORK")
-npDiv2:SetPoint("TOPLEFT",  notesPanel, "TOPLEFT",   8, -70)
-npDiv2:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT",  -8, -70)
+npDiv2:SetPoint("TOPLEFT",  notesPanel, "TOPLEFT",   8, -78)
+npDiv2:SetPoint("TOPRIGHT", notesPanel, "TOPRIGHT",  -8, -78)
 npDiv2:SetHeight(1); npDiv2:SetColorTexture(0.2, 0.2, 0.3, 0.5)
 
 local npScrollFrame = CreateFrame("ScrollFrame", nil, notesPanel, "UIPanelScrollFrameTemplate")
-npScrollFrame:SetPoint("TOPLEFT",     notesPanel, "TOPLEFT",     8, -74)
-npScrollFrame:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -28, 106)
+npScrollFrame:SetPoint("TOPLEFT",     notesPanel, "TOPLEFT",     8, -82)
+npScrollFrame:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -28, 120)
+npScrollFrame:SetScript("OnSizeChanged", function()
+    npContent:SetWidth(npScrollFrame:GetWidth())
+    if addon.RefreshNotes then addon.RefreshNotes() end
+end)
 
 local npContent = CreateFrame("Frame", nil, npScrollFrame)
-npContent:SetSize(npScrollFrame:GetWidth(), 1)
+npContent:SetHeight(1)
 npScrollFrame:SetScrollChild(npContent)
 
-local NP_ROW_H = 30
-local npRows   = {}
+local NP_ROW_H    = 36
+local npRows      = {}
+local npStripes   = {}
+
+local function GetOrCreateNPStripe(idx)
+    if npStripes[idx] then return npStripes[idx] end
+    local f = CreateFrame("Frame", nil, npContent)
+    f:SetHeight(NP_ROW_H)
+    f:SetPoint("TOPLEFT",  npContent, "TOPLEFT",  0, -(idx - 1) * NP_ROW_H)
+    f:SetPoint("TOPRIGHT", npContent, "TOPRIGHT", 0, -(idx - 1) * NP_ROW_H)
+    local bg = f:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
+    if idx % 2 == 0 then
+        bg:SetColorTexture(0.10, 0.10, 0.18, 0.65)
+    else
+        bg:SetColorTexture(0.05, 0.05, 0.10, 0.35)
+    end
+    npStripes[idx] = f
+    return f
+end
 
 local function GetOrCreateNPRow(idx)
     if npRows[idx] then return npRows[idx] end
@@ -1741,12 +1784,7 @@ local function GetOrCreateNPRow(idx)
     row:SetHeight(NP_ROW_H)
     row:SetPoint("TOPLEFT",  npContent, "TOPLEFT",  0, -(idx - 1) * NP_ROW_H)
     row:SetPoint("TOPRIGHT", npContent, "TOPRIGHT", 0, -(idx - 1) * NP_ROW_H)
-    local bg = row:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-    if idx % 2 == 0 then
-        bg:SetColorTexture(0.10, 0.10, 0.18, 0.65)
-    else
-        bg:SetColorTexture(0.05, 0.05, 0.10, 0.35)
-    end
+    row:SetFrameLevel(npContent:GetFrameLevel() + 4)
 
     local sep = row:CreateTexture(nil, "ARTWORK")
     sep:SetPoint("BOTTOMLEFT",  row, "BOTTOMLEFT",  0, 0)
@@ -1779,14 +1817,14 @@ local function GetOrCreateNPRow(idx)
     row.editBtn:SetScript("OnLeave", function(self) self:SetBackdropBorderColor(0.30, 0.30, 0.55, 0.7) end)
 
     row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    row.nameLabel:SetPoint("TOPLEFT",  row, "TOPLEFT", 6, -3)
-    row.nameLabel:SetPoint("TOPRIGHT", row.editBtn, "TOPLEFT", -8, -3)
+    row.nameLabel:SetPoint("TOPLEFT",  row, "TOPLEFT", 10, -6)
+    row.nameLabel:SetPoint("TOPRIGHT", row.editBtn, "TOPLEFT", -8, -6)
     row.nameLabel:SetJustifyH("LEFT")
     row.nameLabel:SetWordWrap(false)
 
     row.noteLabel = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    row.noteLabel:SetPoint("BOTTOMLEFT",  row, "BOTTOMLEFT", 6, 3)
-    row.noteLabel:SetPoint("BOTTOMRIGHT", row.editBtn, "BOTTOMLEFT", -8, 3)
+    row.noteLabel:SetPoint("BOTTOMLEFT",  row, "BOTTOMLEFT", 10, 6)
+    row.noteLabel:SetPoint("BOTTOMRIGHT", row.editBtn, "BOTTOMLEFT", -8, 6)
     row.noteLabel:SetJustifyH("LEFT")
     row.noteLabel:SetWordWrap(false)
 
@@ -1796,13 +1834,13 @@ end
 
 -- Add Note section (bottom 106 px of the panel)
 local npAddDiv = notesPanel:CreateTexture(nil, "ARTWORK")
-npAddDiv:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOMLEFT",   8, 102)
-npAddDiv:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -8, 102)
+npAddDiv:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOMLEFT",   8, 116)
+npAddDiv:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -8, 116)
 npAddDiv:SetHeight(1); npAddDiv:SetColorTexture(0.3, 0.3, 0.4, 0.6)
 
 local npAddHdr = notesPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-npAddHdr:SetPoint("BOTTOMLEFT", notesPanel, "BOTTOMLEFT", 16, 88)
-npAddHdr:SetText("|cffddddddAdd Note|r")
+npAddHdr:SetPoint("BOTTOM", notesPanel, "BOTTOM", 0, 104)
+npAddHdr:SetText("|cffaaccffAdd Note|r")
 
 local function MakeNPEditBox(parent, w)
     local box = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
@@ -1824,25 +1862,41 @@ local function MakeNPEditBox(parent, w)
     return box
 end
 
-local npNameBox = MakeNPEditBox(notesPanel, 152)
-npNameBox:SetPoint("BOTTOMLEFT", notesPanel, "BOTTOMLEFT", 16, 64)
+local npNameBox = MakeNPEditBox(notesPanel, 0)
+npNameBox:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOMLEFT",  10, 82)
+npNameBox:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOM",      -5, 82)
 
-local npDashLbl = notesPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-npDashLbl:SetPoint("LEFT", npNameBox, "RIGHT", 4, 0)
-npDashLbl:SetText("|cff888888-|r")
-
-local npRealmBox = MakeNPEditBox(notesPanel, 152)
-npRealmBox:SetPoint("LEFT", npDashLbl, "RIGHT", 4, 0)
+local npRealmBox = MakeNPEditBox(notesPanel, 0)
+npRealmBox:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOM",        5, 82)
+npRealmBox:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -10, 82)
 
 local npNoteBox = MakeNPEditBox(notesPanel, 0)
-npNoteBox:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOMLEFT",  16, 36)
-npNoteBox:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -72, 36)
+npNoteBox:SetPoint("BOTTOMLEFT",  notesPanel, "BOTTOMLEFT",   10, 50)
+npNoteBox:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -84, 50)
 npNoteBox:SetMaxLetters(300)
 
-local npSaveBtn = CreateFrame("Button", nil, notesPanel, "UIPanelButtonTemplate")
-npSaveBtn:SetSize(60, 24)
-npSaveBtn:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -10, 34)
-npSaveBtn:SetText("Add Note")
+local npSaveBtn = CreateFrame("Button", nil, notesPanel, "BackdropTemplate")
+npSaveBtn:SetSize(72, 26)
+npSaveBtn:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -10, 48)
+npSaveBtn:SetBackdrop({
+    bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
+    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+    tile = true, tileSize = 8, edgeSize = 8,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+})
+npSaveBtn:SetBackdropColor(0.12, 0.18, 0.35, 0.9)
+npSaveBtn:SetBackdropBorderColor(0.40, 0.50, 0.80, 0.9)
+local npSaveLbl = npSaveBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+npSaveLbl:SetPoint("CENTER")
+npSaveLbl:SetText("|cffaaccffAdd Note|r")
+npSaveBtn:SetScript("OnEnter", function(self)
+    self:SetBackdropColor(0.18, 0.26, 0.50, 1)
+    self:SetBackdropBorderColor(0.55, 0.65, 1.0, 1)
+end)
+npSaveBtn:SetScript("OnLeave", function(self)
+    self:SetBackdropColor(0.12, 0.18, 0.35, 0.9)
+    self:SetBackdropBorderColor(0.40, 0.50, 0.80, 0.9)
+end)
 
 local function MakeNPHint(box, text)
     local h = box:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -1876,6 +1930,7 @@ end)
 
 function addon.RefreshNotes()
     if not (notesPanel and notesPanel:IsShown()) then return end
+    npContent:SetWidth(npScrollFrame:GetWidth())
     local query = npSearch:GetText():lower()
     local sorted = {}
     if addon.db and addon.db.playerNotes then
@@ -1906,7 +1961,12 @@ function addon.RefreshNotes()
         row:Show()
     end
     for i = #sorted + 1, #npRows do npRows[i]:Hide() end
-    npContent:SetHeight(math.max(#sorted * NP_ROW_H, 1))
+
+    local visibleRows = math.ceil((npScrollFrame:GetHeight() or 0) / NP_ROW_H) + 1
+    local totalStripes = math.max(#sorted, visibleRows)
+    for i = 1, totalStripes do GetOrCreateNPStripe(i):Show() end
+    for i = totalStripes + 1, #npStripes do npStripes[i]:Hide() end
+    npContent:SetHeight(math.max(totalStripes * NP_ROW_H, 1))
 end
 
 
