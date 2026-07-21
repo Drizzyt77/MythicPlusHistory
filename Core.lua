@@ -206,6 +206,7 @@ local function OnChallengeStart()
         abandoned        = false,
         character        = UnitName("player") .. "-" .. GetRealmName(),
         deathCount       = 0,
+        season           = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason() or nil,
     }
 
     CancelRunTimeout()
@@ -299,6 +300,24 @@ local function OnChallengeReset()
 end
 
 local function OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
+    if MythicPlusHistoryDB and not MythicPlusHistoryDB.seasonMigratedV2 then
+        local season1ID = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason()
+        if season1ID and season1ID > 0 then
+            local SEASON1_END = 1785542400  -- Aug 1, 2026 00:00 UTC
+            local tagged = 0
+            for _, run in ipairs(MythicPlusHistoryDB.runs or {}) do
+                if run.season == nil and (run.startTime or 0) < SEASON1_END then
+                    run.season = season1ID
+                    tagged = tagged + 1
+                end
+            end
+            MythicPlusHistoryDB.seasonMigratedV2 = true
+            if tagged > 0 then
+                print("|cff00ff00[M+ History]|r Season migration: tagged " .. tagged .. " runs as Season " .. season1ID)
+            end
+        end
+    end
+
     if not (isInitialLogin or isReloadingUI) then return end
     if not activeRun then return end
     local mapID = C_ChallengeMode and C_ChallengeMode.GetActiveChallengeMapID
@@ -673,6 +692,28 @@ SlashCmdList["MYTHICPLUSHISTORY"] = function(msg)
     local cmd = msg and msg:lower():match("^%s*(%a*)") or ""
     if cmd == "test" then
         addon.CreateTestRun()
+    elseif cmd == "debug" then
+        print("|cff00ccff[M+ History]|r Season API debug:")
+        if C_MythicPlus then
+            local fns = { "GetCurrentSeason", "GetCurrentMythicPlusSeason", "GetCurrentUIDisplaySeason" }
+            for _, fn in ipairs(fns) do
+                if C_MythicPlus[fn] then
+                    local ok, val = pcall(C_MythicPlus[fn])
+                    print("  C_MythicPlus." .. fn .. "() = " .. (ok and tostring(val) or "ERR:" .. tostring(val)))
+                else
+                    print("  C_MythicPlus." .. fn .. " = nil")
+                end
+            end
+        else
+            print("  C_MythicPlus is nil")
+        end
+        print("  seasonMigratedV2 = " .. tostring(MythicPlusHistoryDB and MythicPlusHistoryDB.seasonMigratedV2))
+        local runs = MythicPlusHistoryDB and MythicPlusHistoryDB.runs or {}
+        local withSeason, withoutSeason = 0, 0
+        for _, r in ipairs(runs) do
+            if r.season then withSeason = withSeason + 1 else withoutSeason = withoutSeason + 1 end
+        end
+        print("  Runs with season: " .. withSeason .. "  without: " .. withoutSeason)
     elseif addon.ToggleUI then
         addon.ToggleUI()
     end

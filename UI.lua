@@ -536,6 +536,55 @@ local runCountLabel = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal
 runCountLabel:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 12, -312)
 runCountLabel:SetText("Total Runs: 0")
 
+local mainSeasonFilter = "season"
+local mainSeasonBtns   = {}
+
+local function SelectMainSeasonBtn(key)
+    mainSeasonFilter = key
+    for _, b in ipairs(mainSeasonBtns) do
+        if b.key == key then
+            b:SetBackdropColor(0.08, 0.18, 0.32, 0.95)
+            b:SetBackdropBorderColor(0.25, 0.55, 0.90, 1)
+            b.lbl:SetTextColor(1, 1, 1)
+        else
+            b:SetBackdropColor(0.08, 0.08, 0.14, 0.8)
+            b:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6)
+            b.lbl:SetTextColor(0.6, 0.6, 0.6)
+        end
+    end
+    if addon.RefreshUI then addon.RefreshUI() end
+end
+
+local MAIN_SEASON_OPTS = {
+    { key = "season", label = "Season" },
+    { key = "all",    label = "All"    },
+}
+for i, opt in ipairs(MAIN_SEASON_OPTS) do
+    local btn = CreateFrame("Button", nil, mainFrame, "BackdropTemplate")
+    btn:SetSize(52, 18)
+    btn:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8 - (2 - i) * 56, -312)
+    btn:SetBackdrop({
+        bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        tile = true, tileSize = 8, edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    btn:SetBackdropColor(0.08, 0.08, 0.14, 0.8)
+    btn:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6)
+    local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lbl:SetPoint("CENTER"); lbl:SetText(opt.label); lbl:SetTextColor(0.6, 0.6, 0.6)
+    btn.lbl = lbl; btn.key = opt.key
+    btn:SetScript("OnEnter", function(self)
+        if self.key ~= mainSeasonFilter then self:SetBackdropBorderColor(0.3, 0.3, 0.5, 0.8) end
+    end)
+    btn:SetScript("OnLeave", function(self)
+        if self.key ~= mainSeasonFilter then self:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6) end
+    end)
+    btn:SetScript("OnClick", function(self) SelectMainSeasonBtn(self.key) end)
+    mainSeasonBtns[i] = btn
+end
+SelectMainSeasonBtn("season")
+
 
 -- ─── Autocomplete Dropdown ────────────────────────────────────────────────────
 
@@ -1079,6 +1128,16 @@ function addon.RefreshUI()
     local textQuery  = searchBox and searchBox:GetText() or ""
     local hasFilters = #activeFilters > 0 or textQuery ~= ""
     local allRuns    = addon.GetDisplayRuns()
+    if mainSeasonFilter == "season" then
+        local curSeason = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason()
+        if curSeason then
+            local seasonRuns = {}
+            for _, run in ipairs(allRuns) do
+                if run.season == curSeason then table.insert(seasonRuns, run) end
+            end
+            allRuns = seasonRuns
+        end
+    end
     local total      = #allRuns
     local grandTotal = addon.GetRunCount()
     local isCharMode = addon.db and addon.db.settings and addon.db.settings.trackingMode == "character"
@@ -1442,7 +1501,7 @@ end
 for i, opt in ipairs(DATE_OPTS) do
     local btn = CreateFrame("Button", nil, statsPanel, "BackdropTemplate")
     btn:SetHeight(20)
-    btn:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",  12 + (i - 1) * 118, -158)
+    btn:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",  12 + (i - 1) * 118, -184)
     btn:SetWidth(110)
     btn:SetBackdrop({
         bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
@@ -1465,6 +1524,56 @@ for i, opt in ipairs(DATE_OPTS) do
     spDateBtns[i] = btn
 end
 SelectDateBtn("all")
+
+local spSeasonFilter = "season"
+local spSeasonBtns   = {}
+local SEASON_OPTS    = {
+    { key = "season", label = "Current Season" },
+    { key = "all",    label = "All Seasons"    },
+}
+
+local function SelectSeasonBtn(key)
+    spSeasonFilter = key
+    for _, b in ipairs(spSeasonBtns) do
+        if b.key == key then
+            b:SetBackdropColor(0.08, 0.18, 0.32, 0.95)
+            b:SetBackdropBorderColor(0.25, 0.55, 0.90, 1)
+            b.lbl:SetTextColor(1, 1, 1)
+        else
+            b:SetBackdropColor(0.08, 0.08, 0.14, 0.8)
+            b:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6)
+            b.lbl:SetTextColor(0.6, 0.6, 0.6)
+        end
+    end
+    if addon.RefreshStats then addon.RefreshStats() end
+end
+
+for i, opt in ipairs(SEASON_OPTS) do
+    local btn = CreateFrame("Button", nil, statsPanel, "BackdropTemplate")
+    btn:SetHeight(20)
+    btn:SetPoint("TOPLEFT", statsPanel, "TOPLEFT", 12 + (i - 1) * 175, -158)
+    btn:SetWidth(167)
+    btn:SetBackdrop({
+        bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+        tile = true, tileSize = 8, edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    btn:SetBackdropColor(0.08, 0.08, 0.14, 0.8)
+    btn:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6)
+    local lbl = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lbl:SetPoint("CENTER"); lbl:SetText(opt.label); lbl:SetTextColor(0.6, 0.6, 0.6)
+    btn.lbl = lbl; btn.key = opt.key
+    btn:SetScript("OnEnter", function(self)
+        if self.key ~= spSeasonFilter then self:SetBackdropBorderColor(0.3, 0.3, 0.5, 0.8) end
+    end)
+    btn:SetScript("OnLeave", function(self)
+        if self.key ~= spSeasonFilter then self:SetBackdropBorderColor(0.2, 0.2, 0.35, 0.6) end
+    end)
+    btn:SetScript("OnClick", function(self) SelectSeasonBtn(self.key) end)
+    spSeasonBtns[i] = btn
+end
+SelectSeasonBtn("season")
 
 -- Dungeon filter dropdown
 local spDungFilter = "all"
@@ -1529,7 +1638,7 @@ end
 
 local spDungBtn = CreateFrame("Button", nil, statsPanel, "BackdropTemplate")
 spDungBtn:SetHeight(22)
-spDungBtn:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",  12, -184)
+spDungBtn:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",  12, -210)
 spDungBtn:SetPoint("TOPRIGHT", statsPanel, "TOPRIGHT", -12, -184)
 spDungBtn:SetBackdrop({
     bgFile   = "Interface/Tooltips/UI-Tooltip-Background",
@@ -1563,17 +1672,17 @@ spDungDropdown:SetPoint("TOPRIGHT", spDungBtn, "BOTTOMRIGHT", 0, -2)
 local SP_COL_LABELS = { "Dungeon", "Total", "Timed", "Depl.", "Abandon", "Best Time", "Peak +" }
 for i, lbl in ipairs(SP_COL_LABELS) do
     local fs = statsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    fs:SetPoint("TOPLEFT", statsPanel, "TOPLEFT", SP_COLS[i] + 8, -210)
+    fs:SetPoint("TOPLEFT", statsPanel, "TOPLEFT", SP_COLS[i] + 8, -236)
     fs:SetText("|cff666666" .. lbl .. "|r")
 end
 
 local spHdrDiv = statsPanel:CreateTexture(nil, "ARTWORK")
-spHdrDiv:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",   8, -222)
-spHdrDiv:SetPoint("TOPRIGHT", statsPanel, "TOPRIGHT",  -8, -222)
+spHdrDiv:SetPoint("TOPLEFT",  statsPanel, "TOPLEFT",   8, -248)
+spHdrDiv:SetPoint("TOPRIGHT", statsPanel, "TOPRIGHT",  -8, -248)
 spHdrDiv:SetHeight(1); spHdrDiv:SetColorTexture(0.2, 0.2, 0.3, 0.5)
 
 local spScrollFrame = CreateFrame("ScrollFrame", nil, statsPanel, "UIPanelScrollFrameTemplate")
-spScrollFrame:SetPoint("TOPLEFT",     statsPanel, "TOPLEFT",     8,  -226)
+spScrollFrame:SetPoint("TOPLEFT",     statsPanel, "TOPLEFT",     8,  -252)
 spScrollFrame:SetPoint("BOTTOMRIGHT", statsPanel, "BOTTOMRIGHT", -28,  8)
 
 local spContent = CreateFrame("Frame", nil, spScrollFrame)
@@ -1637,6 +1746,7 @@ function addon.RefreshStats()
         dateFrom = GetResetStart(1)
         dateTo   = GetResetStart(0) - 1
     end
+    local currentSeason = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason()
 
     local totals = { total = 0, timed = 0, depleted = 0, notdone = 0 }
     local byDungeon = {}
@@ -1644,10 +1754,11 @@ function addon.RefreshStats()
     for _, run in ipairs(runs) do
         local kl = run.keyLevel or 0
         local st = run.startTime or 0
-        local keyOk  = kl >= minK and kl <= maxK
-        local dateOk = (not dateFrom or st >= dateFrom) and (not dateTo or st <= dateTo)
-        local dungOk = spDungFilter == "all" or run.dungeon == spDungFilter
-        if keyOk and dateOk and dungOk then
+        local keyOk    = kl >= minK and kl <= maxK
+        local dateOk   = (not dateFrom or st >= dateFrom) and (not dateTo or st <= dateTo)
+        local dungOk   = spDungFilter == "all" or run.dungeon == spDungFilter
+        local seasonOk = spSeasonFilter == "all" or (run.season and run.season == currentSeason)
+        if keyOk and dateOk and dungOk and seasonOk then
             totals.total = totals.total + 1
             local d = run.dungeon or "Unknown"
             if not byDungeon[d] then
@@ -1763,14 +1874,15 @@ npDiv2:SetHeight(1); npDiv2:SetColorTexture(0.2, 0.2, 0.3, 0.5)
 local npScrollFrame = CreateFrame("ScrollFrame", nil, notesPanel, "UIPanelScrollFrameTemplate")
 npScrollFrame:SetPoint("TOPLEFT",     notesPanel, "TOPLEFT",     8, -82)
 npScrollFrame:SetPoint("BOTTOMRIGHT", notesPanel, "BOTTOMRIGHT", -28, 120)
-npScrollFrame:SetScript("OnSizeChanged", function()
-    npContent:SetWidth(npScrollFrame:GetWidth())
-    if addon.RefreshNotes then addon.RefreshNotes() end
-end)
 
 local npContent = CreateFrame("Frame", nil, npScrollFrame)
 npContent:SetHeight(1)
 npScrollFrame:SetScrollChild(npContent)
+
+npScrollFrame:SetScript("OnSizeChanged", function()
+    npContent:SetWidth(npScrollFrame:GetWidth())
+    if addon.RefreshNotes then addon.RefreshNotes() end
+end)
 
 local NP_ROW_H    = 36
 local npRows      = {}
@@ -1988,7 +2100,7 @@ end
 
 -- ─── Tab Navigation ───────────────────────────────────────────────────────────
 
-local runsViewFrames = { divider2, filterBar, runCountLabel, scrollFrame }
+local runsViewFrames = { divider2, filterBar, runCountLabel, scrollFrame, mainSeasonBtns[1], mainSeasonBtns[2] }
 
 ShowTab = function(name)
     activeTab = name
