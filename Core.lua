@@ -685,35 +685,13 @@ end
 -- ─── Slash Command ───────────────────────────────────────────────────────────
 
 -- "/mtrack"      → open/close window
--- "/mtrack test" → inject a fake run for testing
+-- "/mtrack test" → inject a test run
 SLASH_MYTHICPLUSHISTORY1 = "/mtrack"
 SLASH_MYTHICPLUSHISTORY2 = "/mythicplushistory"
 SlashCmdList["MYTHICPLUSHISTORY"] = function(msg)
     local cmd = msg and msg:lower():match("^%s*(%a*)") or ""
     if cmd == "test" then
         addon.CreateTestRun()
-    elseif cmd == "debug" then
-        print("|cff00ccff[M+ History]|r Season API debug:")
-        if C_MythicPlus then
-            local fns = { "GetCurrentSeason", "GetCurrentMythicPlusSeason", "GetCurrentUIDisplaySeason" }
-            for _, fn in ipairs(fns) do
-                if C_MythicPlus[fn] then
-                    local ok, val = pcall(C_MythicPlus[fn])
-                    print("  C_MythicPlus." .. fn .. "() = " .. (ok and tostring(val) or "ERR:" .. tostring(val)))
-                else
-                    print("  C_MythicPlus." .. fn .. " = nil")
-                end
-            end
-        else
-            print("  C_MythicPlus is nil")
-        end
-        print("  seasonMigratedV2 = " .. tostring(MythicPlusHistoryDB and MythicPlusHistoryDB.seasonMigratedV2))
-        local runs = MythicPlusHistoryDB and MythicPlusHistoryDB.runs or {}
-        local withSeason, withoutSeason = 0, 0
-        for _, r in ipairs(runs) do
-            if r.season then withSeason = withSeason + 1 else withoutSeason = withoutSeason + 1 end
-        end
-        print("  Runs with season: " .. withSeason .. "  without: " .. withoutSeason)
     elseif addon.ToggleUI then
         addon.ToggleUI()
     end
