@@ -2205,6 +2205,19 @@ end)
 function addon.RefreshNotes()
     if not (notesPanel and notesPanel:IsShown()) then return end
     npContent:SetWidth(npScrollFrame:GetWidth())
+
+    local classMap = {}
+    for _, run in ipairs(addon.GetRuns()) do
+        if run.members then
+            for _, member in ipairs(run.members) do
+                local key = (member.name or "?") .. "-" .. (member.realm or "")
+                if member.class and not classMap[key] then
+                    classMap[key] = member.class
+                end
+            end
+        end
+    end
+
     local query = npSearch:GetText():lower()
     local sorted = {}
     if addon.db and addon.db.playerNotes then
@@ -2220,7 +2233,10 @@ function addon.RefreshNotes()
         local row = GetOrCreateNPRow(i)
         local displayName = entry.key:match("^([^%-]+)") or entry.key
         local preview = #entry.note > 50 and entry.note:sub(1, 50) .. "..." or entry.note
-        row.nameLabel:SetText("|cffdddddd" .. entry.key .. "|r")
+        local class = classMap[entry.key]
+        local cc = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+        local nameHex = cc and string.format("%02x%02x%02x", cc.r * 255, cc.g * 255, cc.b * 255) or "dddddd"
+        row.nameLabel:SetText("|cff" .. nameHex .. entry.key .. "|r")
         row.noteLabel:SetText("|cff888888" .. preview .. "|r")
         row.editBtn:SetScript("OnClick", function()
             local popup = StaticPopup_Show("MYTHICPLUSHISTORY_PLAYER_NOTE", displayName, nil, entry.key)
