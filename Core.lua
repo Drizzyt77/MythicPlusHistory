@@ -691,7 +691,8 @@ SLASH_MYTHICPLUSHISTORY2 = "/mythicplushistory"
 SlashCmdList["MYTHICPLUSHISTORY"] = function(msg)
     local cmd = msg and msg:lower():match("^%s*(%a*)") or ""
     if cmd == "test" then
-        addon.CreateTestRun()
+        local seasonArg = msg and msg:match("test%s+(%d+)")
+        addon.CreateTestRun(seasonArg and tonumber(seasonArg))
     elseif addon.ToggleUI then
         addon.ToggleUI()
     end
