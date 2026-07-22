@@ -1468,8 +1468,13 @@ local spDateFilter = "all"  -- "all" | "this" | "last"
 
 local function GetResetStart(weeksAgo)
     weeksAgo = weeksAgo or 0
-    local now   = time()
-    local t     = date("*t", now)
+    if C_DateAndTime and C_DateAndTime.GetSecondsUntilWeeklyReset then
+        local nextReset = time() + C_DateAndTime.GetSecondsUntilWeeklyReset()
+        return nextReset - (1 + weeksAgo) * 604800
+    end
+    -- Fallback: Tuesday midnight local time (approximate, ignores reset hour)
+    local now = time()
+    local t   = date("*t", now)
     local daysSinceTue = (t.wday - 3 + 7) % 7
     local todayMidnight = now - (t.hour * 3600 + t.min * 60 + t.sec)
     return todayMidnight - daysSinceTue * 86400 - weeksAgo * 604800
