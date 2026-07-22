@@ -2345,6 +2345,7 @@ function addon.ToggleUI()
         StopLiveTimer()
         mainFrame:Hide()
     else
+        if addon.RunSeasonMigration then addon.RunSeasonMigration() end
         addon.ClearRunDetail()
         addon.selectedRun = nil
         ShowTab("runs")
