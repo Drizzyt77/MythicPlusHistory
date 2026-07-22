@@ -1,6 +1,8 @@
 # Changelog
-## v1.0.9
-- Reworked tabs for Statistics, Notes, and Settings
-- Reworked pages for Statistics, Notes, and Settings
-- Added fallback heartbeat tracker to ensure tracking stops when babandoned/reset
-- Fixed window resizing bug when scaled
+## v1.1.0
+- Added new season support
+- Added filtering of per season tracked runs
+- Added filtering of per season statistics
+- Migrate database to set season ID for previously completed keys
+- Fixed calculations for current and previous reset. Was using midnight as a reset time, now using exact reset timer for US/EU
+- Added class color to the notes menu
