@@ -154,11 +154,12 @@ local function BuildGroup()
     return members, playerName, playerRealm
 end
 
-function addon.CreateTestRun()
+function addon.CreateTestRun(seasonOverride)
     local level   = RandInt(2, 22)
     local dungeon = RandPick(TEST_DUNGEONS)
     local members, playerName, playerRealm = BuildGroup()
     local timeLimitMs = RandInt(28, 38) * 60 * 1000
+    local season  = seasonOverride or (C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason())
 
     local run = {
         dungeon   = dungeon,
@@ -169,6 +170,7 @@ function addon.CreateTestRun()
         completed = false,
         abandoned = false,
         character = playerName .. "-" .. playerRealm,
+        season    = season,
     }
 
     local roll = RandInt(1, 100)
@@ -206,7 +208,8 @@ function addon.CreateTestRun()
 
     addon.SaveRun(run)
     if addon.RefreshUI then addon.RefreshUI() end
-    print("|cff00ff00[M+ History]|r Test run added: " .. result .. " +" .. level .. " " .. dungeon)
+    local seasonTag = season and (" [Season " .. season .. "]") or ""
+    print("|cff00ff00[M+ History]|r Test run added: " .. result .. " +" .. level .. " " .. dungeon .. seasonTag)
 end
 
 
