@@ -299,24 +299,27 @@ local function OnChallengeReset()
     SaveAsAbandoned("Key reset")
 end
 
-local function OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
-    if MythicPlusHistoryDB and not MythicPlusHistoryDB.seasonMigratedV2 then
-        local season1ID = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason()
-        if season1ID and season1ID > 0 then
-            local SEASON1_END = 1785542400  -- Aug 1, 2026 00:00 UTC
-            local tagged = 0
-            for _, run in ipairs(MythicPlusHistoryDB.runs or {}) do
-                if run.season == nil and (run.startTime or 0) < SEASON1_END then
-                    run.season = season1ID
-                    tagged = tagged + 1
-                end
-            end
-            MythicPlusHistoryDB.seasonMigratedV2 = true
-            if tagged > 0 then
-                print("|cff00ff00[M+ History]|r Season migration: tagged " .. tagged .. " runs as Season " .. season1ID)
-            end
+local function RunSeasonMigration()
+    if not (MythicPlusHistoryDB and not MythicPlusHistoryDB.seasonMigratedV2) then return end
+    local season1ID = C_MythicPlus and C_MythicPlus.GetCurrentSeason and C_MythicPlus.GetCurrentSeason()
+    if not (season1ID and season1ID > 0) then return end
+    local SEASON1_END = 1785542400  -- Aug 1, 2026 00:00 UTC
+    local tagged = 0
+    for _, run in ipairs(MythicPlusHistoryDB.runs or {}) do
+        if run.season == nil and (run.startTime or 0) < SEASON1_END then
+            run.season = season1ID
+            tagged = tagged + 1
         end
     end
+    MythicPlusHistoryDB.seasonMigratedV2 = true
+    if tagged > 0 then
+        print("|cff00ff00[M+ History]|r Season migration: tagged " .. tagged .. " runs as Season " .. season1ID)
+    end
+end
+addon.RunSeasonMigration = RunSeasonMigration
+
+local function OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
+    RunSeasonMigration()
 
     if not (isInitialLogin or isReloadingUI) then return end
     if not activeRun then return end
