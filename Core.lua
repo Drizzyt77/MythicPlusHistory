@@ -224,6 +224,7 @@ end
 
 local function OnChallengeCompleted(...)
     if not activeRun then return end
+    if activeRun.startTime and (time() - activeRun.startTime) < 60 then return end
     CancelRunTimeout()
     CancelZoneOutTimer()
 
