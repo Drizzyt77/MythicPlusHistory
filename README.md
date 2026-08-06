@@ -18,15 +18,19 @@ Add notes to any player you've grouped with. Great healer? Note it. Never invite
 
 ### Run Notes
 
-Add a freeform note to any individual run — useful for logging a particularly smooth group, a rough affix combo, or anything worth remembering about that specific key.
+Add a freeform note to any individual run — useful for logging a particularly smooth group, or anything worth remembering about that specific key.
 
 ### LFG Alerts
 
 When you have a group listed in the Group Finder, Mythic+ History will alert you in chat and show a tooltip note whenever an applicant has a saved note — right on the application panel before you invite them.
 
+### Season Tracking
+
+Runs are automatically tagged with the current Mythic+ season. Filter your run list and stats by current season, any past season, or all time.
+
 ### Statistics
 
-A dedicated stats panel shows your overall completion rates and a per-dungeon breakdown of timed, depleted, and abandoned runs with best times and peak key levels. Filter by key range, date range (All Time / This Reset / Last Reset), and specific dungeon.
+A dedicated stats panel shows your overall completion rates and a per-dungeon breakdown of timed, depleted, and abandoned runs with best times and peak key levels. Filter by key range, date range (All Time / This Reset / Last Reset), dungeon, and season.
 
 ### Minimap Button
 
@@ -37,7 +41,7 @@ Quick access from a draggable minimap icon. Position is saved between sessions.
 ## Slash Commands
 
 *   `/mtrack` — Open or close the tracker window
-*   `/mtrack test` — Add a test run to verify the addon is working
+*   `/mtrack test (season ID)` — Add a test run to verify the addon is working
 
 ***
 
@@ -46,4 +50,4 @@ Quick access from a draggable minimap icon. Position is saved between sessions.
 *   Supports account-wide or per-character run tracking, configurable in settings
 *   UI position and scale are saved between sessions and can be reset from ESC > Options > Addons > Mythic+ History
 *   No required dependencies — LibDBIcon is bundled for the minimap button
-*   Compatible with WoW Midnight (Interface 120005)
+*   Compatible with WoW Midnight
