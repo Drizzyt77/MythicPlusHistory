@@ -9,3 +9,6 @@
 
 ## v1.1.1
 - Fix bug with migration only working on reload
+
+## v1.1.2
+- Fixed issue in rare circumstances a run could double save improperly and save it under Season -1
