@@ -12,3 +12,6 @@
 
 ## v1.1.3
 - Fixed issue in rare circumstances a run could double save improperly and save it under Season -1
+
+## v1.1.4
+- Fixed an error from the housing layout mode
