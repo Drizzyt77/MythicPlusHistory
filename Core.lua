@@ -522,7 +522,8 @@ local function FindApplicantID(frame)
     for _ = 1, 3 do
         if not frame then break end
         if frame.applicantID then return frame.applicantID, frame.memberIdx end
-        frame = frame.GetParent and frame:GetParent()
+        local ok, parent = pcall(function() return frame.GetParent and frame:GetParent() end)
+        frame = ok and parent or nil
     end
     return nil, nil
 end
@@ -532,7 +533,8 @@ local function FindSearchResultID(frame)
         if not frame then break end
         local id = frame.searchResultID or frame.resultID or frame.lfgSearchResultID or frame.entryID
         if id then return id end
-        frame = frame.GetParent and frame:GetParent()
+        local ok, parent = pcall(function() return frame.GetParent and frame:GetParent() end)
+        frame = ok and parent or nil
     end
     return nil
 end
